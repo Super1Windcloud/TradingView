@@ -24,8 +24,10 @@
 				"resizable": true,
 				"decorations": false,
 				"transparent": true,
-				"height": 600,
-				"width": 800,
+				"minHeight": 820,
+				"minWidth": 1280,
+				"height": 920,
+				"width": 1440,
 				"visible": false
 			}
 		],

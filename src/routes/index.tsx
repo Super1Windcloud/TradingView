@@ -30,6 +30,14 @@ export const Route = createFileRoute("/")({
 
 const defaultCategory: IndicesCategory = "all"
 const defaultProvider: MarketProvider | undefined = undefined
+const sidebarItems: Array<{ label: string; active?: boolean }> = [
+  { label: "Indices", active: true },
+  { label: "Stocks" },
+  { label: "Crypto" },
+  { label: "Forex" },
+  { label: "Futures" },
+  { label: "ETF" },
+] as const
 
 function IndicesPage() {
   const { t, locale } = useI18n()
@@ -127,8 +135,46 @@ function IndicesPage() {
   }, [categoryCounts, selectedCategory, t])
 
   return (
-    <main className="min-h-full bg-[#1b1d1f] text-[#f2f2f2]">
-      <section className="mx-auto flex w-full max-w-[1600px] flex-col px-5 pt-6 pb-8 sm:px-8">
+    <main className="flex min-h-full bg-[#16181a] text-[#f2f2f2]">
+      <aside className="hidden w-[248px] shrink-0 border-r border-[#2b2e33] bg-[#17191b] lg:flex lg:flex-col">
+        <div className="flex h-12 items-center border-b border-[#2b2e33] px-4">
+          <span className="text-sm font-semibold text-[#f3f4f6]">AstraQuant</span>
+        </div>
+
+        <div className="flex-1 px-3 py-4">
+          <div className="px-2 text-[11px] tracking-wide text-[#7f878f] uppercase">Markets</div>
+          <div className="mt-2 space-y-1">
+            {sidebarItems.map((item) => (
+              <button
+                type="button"
+                key={item.label}
+                className={cn(
+                  "flex h-9 w-full items-center rounded-md px-3 text-left text-sm transition-colors",
+                  item.active
+                    ? "bg-[#25292d] text-[#f3f4f6]"
+                    : "text-[#a7afb7] hover:bg-[#212428] hover:text-[#eceff2]"
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 px-2 text-[11px] tracking-wide text-[#7f878f] uppercase">
+            Current view
+          </div>
+          <div className="mt-2 rounded-md border border-[#2b2f34] bg-[#1d2023] px-3 py-3 text-sm text-[#c7cdd4]">
+            Indices home
+          </div>
+        </div>
+
+        <div className="border-t border-[#2b2e33] px-4 py-3 text-xs text-[#7f878f]">
+          {resolvedProvider ? providerLabels[resolvedProvider] : "Aggregated feed"}
+        </div>
+      </aside>
+
+      <section className="min-w-0 flex-1 bg-[#1b1d1f]">
+        <div className="mx-auto flex w-full max-w-[1600px] flex-col px-5 pt-6 pb-8 sm:px-8">
         <div className="flex flex-wrap gap-2">
           {indexCategories.map((category) => {
             const isActive = selectedCategory === category.id
@@ -308,6 +354,7 @@ function IndicesPage() {
             <div>{sourceNote || t("indicesPreviewSource")}</div>
             {updatedAt ? <div className="mt-1">{updatedAt}</div> : null}
           </div>
+        </div>
         </div>
       </section>
     </main>
