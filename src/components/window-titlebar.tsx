@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { AppIconMark, AppIconSwitcher } from "@/components/app-icon"
 import { LanguageSwitcher } from "@/components/language-switcher"
+import { MarketProviderSwitcher } from "@/components/market-provider-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useI18n } from "@/lib/i18n"
 
@@ -107,6 +108,7 @@ export function WindowTitlebar() {
         style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
       >
         <AppIconSwitcher />
+        <MarketProviderSwitcher />
         <LanguageSwitcher />
         <ThemeToggle />
         <button

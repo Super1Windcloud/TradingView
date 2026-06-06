@@ -22,6 +22,7 @@ import {
   type MarketProvider,
 } from "@/lib/market-data"
 import { useI18n } from "@/lib/i18n"
+import { useMarketProviderStore } from "@/lib/market-provider"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/")({
@@ -29,7 +30,6 @@ export const Route = createFileRoute("/")({
 })
 
 const defaultCategory: IndicesCategory = "all"
-const defaultProvider: MarketProvider | undefined = undefined
 const sidebarItems: Array<{ label: string; active?: boolean }> = [
   { label: "Indices", active: true },
   { label: "Stocks" },
@@ -41,9 +41,9 @@ const sidebarItems: Array<{ label: string; active?: boolean }> = [
 
 function IndicesPage() {
   const { t, locale } = useI18n()
+  const { aggregateProvider } = useMarketProviderStore()
   const [selectedCategory, setSelectedCategory] = useState<IndicesCategory>(defaultCategory)
   const [selectedTab, setSelectedTab] = useState("overview")
-  const provider = defaultProvider
   const [reloadToken, setReloadToken] = useState(0)
   const [rows, setRows] = useState<IndexOverviewRow[]>([])
   const [categoryCounts, setCategoryCounts] = useState<Record<IndicesCategory, number>>(
@@ -63,7 +63,10 @@ function IndicesPage() {
       setError(null)
 
       try {
-        const overview = await getIndicesOverview(selectedCategory, provider)
+        const overview = await getIndicesOverview(
+          selectedCategory,
+          aggregateProvider === "auto" ? undefined : aggregateProvider
+        )
 
         if (ignore) {
           return
@@ -104,7 +107,7 @@ function IndicesPage() {
     return () => {
       ignore = true
     }
-  }, [provider, reloadToken, selectedCategory])
+  }, [aggregateProvider, reloadToken, selectedCategory])
 
   const displayRows = useMemo(() => {
     const next = [...rows]
@@ -169,7 +172,7 @@ function IndicesPage() {
         </div>
 
         <div className="border-t border-[#2b2e33] px-4 py-3 text-xs text-[#7f878f]">
-          {resolvedProvider ? providerLabels[resolvedProvider] : "Aggregated feed"}
+          {formatAggregateProvider(aggregateProvider, resolvedProvider, t)}
         </div>
       </aside>
 
@@ -230,7 +233,7 @@ function IndicesPage() {
 
           <div className="mb-2 flex items-center gap-3">
             <div className="hidden text-right text-xs text-[#8f959c] md:block">
-              <div>{resolvedProvider ? providerLabels[resolvedProvider] : "--"}</div>
+              <div>{formatAggregateProvider(aggregateProvider, resolvedProvider, t)}</div>
               <div>{updatedAt ?? sourceNote}</div>
             </div>
             <Button
@@ -502,4 +505,18 @@ function technicalWeight(value: string) {
   }
 
   return 0
+}
+
+function formatAggregateProvider(
+  aggregateProvider: "auto" | MarketProvider,
+  resolvedProvider: MarketProvider | null,
+  t: ReturnType<typeof useI18n>["t"]
+) {
+  if (aggregateProvider === "auto") {
+    return resolvedProvider
+      ? `${t("aggregateProviderAuto")} · ${providerLabels[resolvedProvider]}`
+      : t("aggregateProviderAuto")
+  }
+
+  return providerLabels[aggregateProvider]
 }

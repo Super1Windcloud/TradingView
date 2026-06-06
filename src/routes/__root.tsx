@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { WindowTitlebar } from "@/components/window-titlebar"
 import { DashboardLayout } from "@/dashboard/layout"
 import { I18nProvider, useI18n } from "@/lib/i18n"
+import { MarketProviderStore } from "@/lib/market-provider"
 import { cn } from "@/lib/utils"
 
 function AppShell() {
@@ -21,20 +22,22 @@ function AppShell() {
     <ThemeProvider>
       <AppIconProvider>
         <I18nProvider>
-          <div className="flex h-screen w-screen flex-col bg-background">
-            <WindowTitlebar />
-            <div
-              style={{
-                scrollbarWidth: "none",
-              }}
-              className={cn(
-                "flex-1 overflow-auto pb-8",
-                "scrollbar scrollbar-track-transparent scrollbar-thumb-accent scrollbar-thumb-rounded-md"
-              )}
-            >
-              <Outlet />
+          <MarketProviderStore>
+            <div className="flex h-screen w-screen flex-col bg-background">
+              <WindowTitlebar />
+              <div
+                style={{
+                  scrollbarWidth: "none",
+                }}
+                className={cn(
+                  "flex-1 overflow-auto pb-8",
+                  "scrollbar scrollbar-track-transparent scrollbar-thumb-accent scrollbar-thumb-rounded-md"
+                )}
+              >
+                <Outlet />
+              </div>
             </div>
-          </div>
+          </MarketProviderStore>
           <TailwindIndicator />
         </I18nProvider>
       </AppIconProvider>
