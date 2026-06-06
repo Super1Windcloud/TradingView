@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{env, path::PathBuf, time::Duration};
-use tauri;
+use tauri::{self, Manager};
 
 #[tauri::command]
 fn show_window(window: tauri::Window) -> Result<(), String> {
@@ -268,6 +268,15 @@ fn parse_number(value: Option<String>) -> Option<f64> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            if let (Some(window), Some(icon)) =
+                (app.get_webview_window("main"), app.default_window_icon())
+            {
+                window.set_icon(icon.clone())?;
+            }
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![show_window, get_market_snapshot])
         .plugin(tauri_plugin_opener::init())
         .run(tauri::generate_context!())
