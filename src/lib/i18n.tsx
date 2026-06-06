@@ -53,7 +53,8 @@ const messages = {
     waitingForData: "Waiting for data",
     asOf: "as of",
     chartArea: "Chart workspace",
-    chartPlaceholder: "Data aggregation is ready. Connect Lightweight Charts or candlestick data here.",
+    chartPlaceholder:
+      "Data aggregation is ready. Connect Lightweight Charts or candlestick data here.",
     overview: "Overview",
     api: "API",
     notReturned: "Not returned",

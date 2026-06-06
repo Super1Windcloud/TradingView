@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useI18n } from "@/lib/i18n"
 import {
   type AssetClass,
   getMarketSnapshot,
@@ -28,7 +29,6 @@ import {
   marketGroups,
   providerLabels,
 } from "@/lib/market-data"
-import { useI18n } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/")({
@@ -234,7 +234,9 @@ function MarketPage() {
               </div>
               <div className="text-right text-xs text-muted-foreground">
                 <div>{providerLabels[provider]}</div>
-                <div>{snapshot?.as_of ? `${t("asOf")} ${snapshot.as_of}` : t("waitingForData")}</div>
+                <div>
+                  {snapshot?.as_of ? `${t("asOf")} ${snapshot.as_of}` : t("waitingForData")}
+                </div>
               </div>
             </div>
           </div>
@@ -268,7 +270,10 @@ function MarketPage() {
                     <QuoteStat label="Low" value={formatPrice(snapshot?.low)} />
                     <QuoteStat label="Prev close" value={formatPrice(snapshot?.previous_close)} />
                     <QuoteStat label="Volume" value={formatCompact(snapshot?.volume)} />
-                    <QuoteStat label="Asset" value={getAssetClassLabel(selectedSymbol.assetClass, t)} />
+                    <QuoteStat
+                      label="Asset"
+                      value={getAssetClassLabel(selectedSymbol.assetClass, t)}
+                    />
                   </dl>
                 </section>
 
