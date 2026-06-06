@@ -7,6 +7,9 @@ const localeStorageKey = "astraquant-locale"
 const messages = {
   "zh-CN": {
     appSubtitle: "市场终端",
+    appIcon: "应用图标",
+    appIconLogo1: "图标 1",
+    appIconLogo2: "图标 2",
     language: "语言",
     theme: "主题",
     themeLight: "浅色",
@@ -38,6 +41,9 @@ const messages = {
   },
   "en-US": {
     appSubtitle: "Market Terminal",
+    appIcon: "App icon",
+    appIconLogo1: "Icon 1",
+    appIconLogo2: "Icon 2",
     language: "Language",
     theme: "Theme",
     themeLight: "Light",

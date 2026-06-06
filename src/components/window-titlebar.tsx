@@ -4,6 +4,7 @@ import { Copy, Minus, Square, X } from "lucide-react"
 import type { CSSProperties, KeyboardEvent } from "react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 
+import { AppIconMark, AppIconSwitcher } from "@/components/app-icon"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useI18n } from "@/lib/i18n"
@@ -95,6 +96,7 @@ export function WindowTitlebar() {
       className="flex h-10 items-center justify-between border-b border-border/60 bg-background/80 pl-3 pr-1 text-xs text-muted-foreground shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60"
     >
       <div className="flex select-none items-center gap-2">
+        <AppIconMark />
         <span className="text-sm font-semibold text-foreground">AstraQuant</span>
         <span className="hidden sm:inline">{t("appSubtitle")}</span>
       </div>
@@ -104,6 +106,7 @@ export function WindowTitlebar() {
         className="flex items-center gap-1"
         style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
       >
+        <AppIconSwitcher />
         <LanguageSwitcher />
         <ThemeToggle />
         <button

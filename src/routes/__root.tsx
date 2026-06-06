@@ -2,6 +2,7 @@ import { createRootRoute, Outlet } from "@tanstack/react-router"
 import { invoke } from "@tauri-apps/api/core"
 import { useEffect } from "react"
 
+import { AppIconProvider } from "@/components/app-icon"
 import { TailwindIndicator } from "@/components/tailwind-indicator"
 import { ThemeProvider } from "@/components/theme-provider"
 import { WindowTitlebar } from "@/components/window-titlebar"
@@ -18,23 +19,25 @@ function AppShell() {
 
   return (
     <ThemeProvider>
-      <I18nProvider>
-        <div className="flex h-screen w-screen flex-col bg-background">
-          <WindowTitlebar />
-          <div
-            style={{
-              scrollbarWidth: "none",
-            }}
-            className={cn(
-              "flex-1 overflow-auto pb-8",
-              "scrollbar scrollbar-track-transparent scrollbar-thumb-accent scrollbar-thumb-rounded-md"
-            )}
-          >
-            <Outlet />
+      <AppIconProvider>
+        <I18nProvider>
+          <div className="flex h-screen w-screen flex-col bg-background">
+            <WindowTitlebar />
+            <div
+              style={{
+                scrollbarWidth: "none",
+              }}
+              className={cn(
+                "flex-1 overflow-auto pb-8",
+                "scrollbar scrollbar-track-transparent scrollbar-thumb-accent scrollbar-thumb-rounded-md"
+              )}
+            >
+              <Outlet />
+            </div>
           </div>
-        </div>
-        <TailwindIndicator />
-      </I18nProvider>
+          <TailwindIndicator />
+        </I18nProvider>
+      </AppIconProvider>
     </ThemeProvider>
   )
 }
