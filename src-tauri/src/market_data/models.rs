@@ -25,6 +25,12 @@ pub(crate) struct IndexCategoryCount {
 }
 
 #[derive(Debug, Serialize)]
+pub(crate) struct AssetCategoryCount {
+    pub(crate) id: String,
+    pub(crate) total: usize,
+}
+
+#[derive(Debug, Serialize)]
 pub(crate) struct IndexOverviewRow {
     pub(crate) id: String,
     pub(crate) symbol: String,
@@ -50,6 +56,35 @@ pub(crate) struct IndicesOverviewResponse {
     pub(crate) source_note: String,
     pub(crate) categories: Vec<IndexCategoryCount>,
     pub(crate) rows: Vec<IndexOverviewRow>,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct AssetOverviewRow {
+    pub(crate) id: String,
+    pub(crate) category_id: String,
+    pub(crate) symbol: String,
+    pub(crate) name: String,
+    pub(crate) region: String,
+    pub(crate) currency: Option<String>,
+    pub(crate) price: Option<f64>,
+    pub(crate) change: Option<f64>,
+    pub(crate) change_percent: Option<f64>,
+    pub(crate) open: Option<f64>,
+    pub(crate) high: Option<f64>,
+    pub(crate) low: Option<f64>,
+    pub(crate) previous_close: Option<f64>,
+    pub(crate) as_of: Option<String>,
+    pub(crate) technical_rating: String,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct AssetOverviewResponse {
+    pub(crate) provider: String,
+    pub(crate) asset: String,
+    pub(crate) updated_at: Option<String>,
+    pub(crate) source_note: String,
+    pub(crate) categories: Vec<AssetCategoryCount>,
+    pub(crate) rows: Vec<AssetOverviewRow>,
 }
 
 #[derive(Debug, Deserialize)]

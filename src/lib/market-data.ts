@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core"
 
-export type MarketProvider = "finnhub"
+export type MarketProvider = "alpha-vantage" | "finnhub"
 
 export const indexCategoryIds = [
   "all",
@@ -50,6 +50,7 @@ export interface IndicesOverviewResponse {
 }
 
 export const providerLabels: Record<MarketProvider, string> = {
+  "alpha-vantage": "Alpha Vantage",
   finnhub: "Finnhub",
 }
 
@@ -433,4 +434,699 @@ function buildPreviewIndicesOverview(category: IndicesCategory): IndicesOverview
     categories: previewCategoryCounts,
     rows,
   }
+}
+
+export type MarketAsset = "stocks" | "etf" | "crypto" | "forex" | "futures"
+
+export interface AssetCategoryCount {
+  id: string
+  total: number
+}
+
+export interface AssetOverviewRow {
+  id: string
+  category_id: string
+  symbol: string
+  name: string
+  region: string
+  currency: string | null
+  price: number | null
+  change: number | null
+  change_percent: number | null
+  open: number | null
+  high: number | null
+  low: number | null
+  previous_close: number | null
+  as_of: string | null
+  technical_rating: string
+}
+
+export interface AssetOverviewResponse {
+  provider: MarketProvider
+  asset: MarketAsset
+  updated_at: string | null
+  source_note: string
+  categories: AssetCategoryCount[]
+  rows: AssetOverviewRow[]
+}
+
+export interface AssetCategoryMeta {
+  id: string
+  i18nKey: string
+}
+
+export interface MarketAssetConfig {
+  asset: MarketAsset
+  path: string
+  navI18nKey: string
+  titleI18nKey: string
+  descriptionI18nKey: string
+  categories: AssetCategoryMeta[]
+}
+
+export const marketNavigationItems = [
+  { to: "/" as const, i18nKey: "assetIndex" },
+  { to: "/stocks" as const, i18nKey: "assetStock" },
+  { to: "/crypto" as const, i18nKey: "assetCrypto" },
+  { to: "/forex" as const, i18nKey: "assetForex" },
+  { to: "/futures" as const, i18nKey: "assetFuture" },
+  { to: "/etf" as const, i18nKey: "assetEtf" },
+]
+
+export const marketAssetConfigs: Record<MarketAsset, MarketAssetConfig> = {
+  stocks: {
+    asset: "stocks",
+    path: "/stocks",
+    navI18nKey: "assetStock",
+    titleI18nKey: "stocksTitle",
+    descriptionI18nKey: "stocksDescription",
+    categories: [
+      { id: "mega-cap", i18nKey: "stocksSectionMegaCap" },
+      { id: "internet", i18nKey: "stocksSectionInternet" },
+      { id: "semiconductors", i18nKey: "stocksSectionSemiconductors" },
+      { id: "china-adr", i18nKey: "stocksSectionChinaAdr" },
+    ],
+  },
+  etf: {
+    asset: "etf",
+    path: "/etf",
+    navI18nKey: "assetEtf",
+    titleI18nKey: "etfTitle",
+    descriptionI18nKey: "etfDescription",
+    categories: [
+      { id: "broad-market", i18nKey: "etfSectionBroadMarket" },
+      { id: "sectors", i18nKey: "etfSectionSectors" },
+      { id: "fixed-income", i18nKey: "etfSectionFixedIncome" },
+      { id: "global-thematic", i18nKey: "etfSectionGlobalThematic" },
+    ],
+  },
+  crypto: {
+    asset: "crypto",
+    path: "/crypto",
+    navI18nKey: "assetCrypto",
+    titleI18nKey: "cryptoTitle",
+    descriptionI18nKey: "cryptoDescription",
+    categories: [
+      { id: "majors", i18nKey: "cryptoSectionMajors" },
+      { id: "smart-contracts", i18nKey: "cryptoSectionSmartContracts" },
+      { id: "payments-meme", i18nKey: "cryptoSectionPaymentsMeme" },
+      { id: "infrastructure", i18nKey: "cryptoSectionInfrastructure" },
+    ],
+  },
+  forex: {
+    asset: "forex",
+    path: "/forex",
+    navI18nKey: "assetForex",
+    titleI18nKey: "forexTitle",
+    descriptionI18nKey: "forexDescription",
+    categories: [
+      { id: "majors", i18nKey: "forexSectionMajors" },
+      { id: "dollar-bloc", i18nKey: "forexSectionDollarBloc" },
+      { id: "asia", i18nKey: "forexSectionAsia" },
+      { id: "crosses", i18nKey: "forexSectionCrosses" },
+    ],
+  },
+  futures: {
+    asset: "futures",
+    path: "/futures",
+    navI18nKey: "assetFuture",
+    titleI18nKey: "futuresTitle",
+    descriptionI18nKey: "futuresDescription",
+    categories: [
+      { id: "energy", i18nKey: "futuresSectionEnergy" },
+      { id: "metals", i18nKey: "futuresSectionMetals" },
+      { id: "grains", i18nKey: "futuresSectionGrains" },
+      { id: "softs", i18nKey: "futuresSectionSofts" },
+    ],
+  },
+}
+
+interface AssetPreviewSeed {
+  id: string
+  category_id: string
+  symbol: string
+  name: string
+  region: string
+  currency: string
+}
+
+const previewAssetSeeds: Record<MarketAsset, AssetPreviewSeed[]> = {
+  stocks: [
+    {
+      id: "aapl",
+      category_id: "mega-cap",
+      symbol: "AAPL",
+      name: "Apple",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "msft",
+      category_id: "mega-cap",
+      symbol: "MSFT",
+      name: "Microsoft",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "nvda",
+      category_id: "mega-cap",
+      symbol: "NVDA",
+      name: "NVIDIA",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "amzn",
+      category_id: "internet",
+      symbol: "AMZN",
+      name: "Amazon",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "googl",
+      category_id: "internet",
+      symbol: "GOOGL",
+      name: "Alphabet Class A",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "meta",
+      category_id: "internet",
+      symbol: "META",
+      name: "Meta Platforms",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "amd",
+      category_id: "semiconductors",
+      symbol: "AMD",
+      name: "AMD",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "tsm",
+      category_id: "semiconductors",
+      symbol: "TSM",
+      name: "Taiwan Semiconductor ADR",
+      region: "Taiwan",
+      currency: "USD",
+    },
+    {
+      id: "avgo",
+      category_id: "semiconductors",
+      symbol: "AVGO",
+      name: "Broadcom",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "baba",
+      category_id: "china-adr",
+      symbol: "BABA",
+      name: "Alibaba ADR",
+      region: "China",
+      currency: "USD",
+    },
+    {
+      id: "pdd",
+      category_id: "china-adr",
+      symbol: "PDD",
+      name: "PDD Holdings ADR",
+      region: "China",
+      currency: "USD",
+    },
+    {
+      id: "bidu",
+      category_id: "china-adr",
+      symbol: "BIDU",
+      name: "Baidu ADR",
+      region: "China",
+      currency: "USD",
+    },
+  ],
+  etf: [
+    {
+      id: "spy",
+      category_id: "broad-market",
+      symbol: "SPY",
+      name: "SPDR S&P 500 ETF Trust",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "qqq",
+      category_id: "broad-market",
+      symbol: "QQQ",
+      name: "Invesco QQQ Trust",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "vti",
+      category_id: "broad-market",
+      symbol: "VTI",
+      name: "Vanguard Total Stock Market ETF",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "xlk",
+      category_id: "sectors",
+      symbol: "XLK",
+      name: "Technology Select Sector SPDR Fund",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "xlf",
+      category_id: "sectors",
+      symbol: "XLF",
+      name: "Financial Select Sector SPDR Fund",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "xle",
+      category_id: "sectors",
+      symbol: "XLE",
+      name: "Energy Select Sector SPDR Fund",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "tlt",
+      category_id: "fixed-income",
+      symbol: "TLT",
+      name: "iShares 20+ Year Treasury Bond ETF",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "lqd",
+      category_id: "fixed-income",
+      symbol: "LQD",
+      name: "iShares iBoxx $ Investment Grade Corporate Bond ETF",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "hyg",
+      category_id: "fixed-income",
+      symbol: "HYG",
+      name: "iShares iBoxx $ High Yield Corporate Bond ETF",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "eem",
+      category_id: "global-thematic",
+      symbol: "EEM",
+      name: "iShares MSCI Emerging Markets ETF",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "smh",
+      category_id: "global-thematic",
+      symbol: "SMH",
+      name: "VanEck Semiconductor ETF",
+      region: "United States",
+      currency: "USD",
+    },
+    {
+      id: "gld",
+      category_id: "global-thematic",
+      symbol: "GLD",
+      name: "SPDR Gold Shares",
+      region: "Global",
+      currency: "USD",
+    },
+  ],
+  crypto: [
+    {
+      id: "btcusd",
+      category_id: "majors",
+      symbol: "BTC/USD",
+      name: "Bitcoin",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "ethusd",
+      category_id: "majors",
+      symbol: "ETH/USD",
+      name: "Ethereum",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "xrpusd",
+      category_id: "majors",
+      symbol: "XRP/USD",
+      name: "XRP",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "solusd",
+      category_id: "smart-contracts",
+      symbol: "SOL/USD",
+      name: "Solana",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "bnbusd",
+      category_id: "smart-contracts",
+      symbol: "BNB/USD",
+      name: "BNB",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "adausd",
+      category_id: "smart-contracts",
+      symbol: "ADA/USD",
+      name: "Cardano",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "dogeusd",
+      category_id: "payments-meme",
+      symbol: "DOGE/USD",
+      name: "Dogecoin",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "ltcusd",
+      category_id: "payments-meme",
+      symbol: "LTC/USD",
+      name: "Litecoin",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "bchusd",
+      category_id: "payments-meme",
+      symbol: "BCH/USD",
+      name: "Bitcoin Cash",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "linkusd",
+      category_id: "infrastructure",
+      symbol: "LINK/USD",
+      name: "Chainlink",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "avaxusd",
+      category_id: "infrastructure",
+      symbol: "AVAX/USD",
+      name: "Avalanche",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "dotusd",
+      category_id: "infrastructure",
+      symbol: "DOT/USD",
+      name: "Polkadot",
+      region: "Global",
+      currency: "USD",
+    },
+  ],
+  forex: [
+    {
+      id: "eurusd",
+      category_id: "majors",
+      symbol: "EUR/USD",
+      name: "Euro / US Dollar",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "gbpusd",
+      category_id: "majors",
+      symbol: "GBP/USD",
+      name: "British Pound / US Dollar",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "usdjpy",
+      category_id: "majors",
+      symbol: "USD/JPY",
+      name: "US Dollar / Japanese Yen",
+      region: "Japan",
+      currency: "JPY",
+    },
+    {
+      id: "audusd",
+      category_id: "dollar-bloc",
+      symbol: "AUD/USD",
+      name: "Australian Dollar / US Dollar",
+      region: "Australia",
+      currency: "USD",
+    },
+    {
+      id: "nzdusd",
+      category_id: "dollar-bloc",
+      symbol: "NZD/USD",
+      name: "New Zealand Dollar / US Dollar",
+      region: "New Zealand",
+      currency: "USD",
+    },
+    {
+      id: "usdcad",
+      category_id: "dollar-bloc",
+      symbol: "USD/CAD",
+      name: "US Dollar / Canadian Dollar",
+      region: "Canada",
+      currency: "CAD",
+    },
+    {
+      id: "usdcnh",
+      category_id: "asia",
+      symbol: "USD/CNH",
+      name: "US Dollar / Offshore Yuan",
+      region: "China",
+      currency: "CNH",
+    },
+    {
+      id: "usdhkd",
+      category_id: "asia",
+      symbol: "USD/HKD",
+      name: "US Dollar / Hong Kong Dollar",
+      region: "Hong Kong",
+      currency: "HKD",
+    },
+    {
+      id: "usdsgd",
+      category_id: "asia",
+      symbol: "USD/SGD",
+      name: "US Dollar / Singapore Dollar",
+      region: "Singapore",
+      currency: "SGD",
+    },
+    {
+      id: "eurgbp",
+      category_id: "crosses",
+      symbol: "EUR/GBP",
+      name: "Euro / British Pound",
+      region: "Europe",
+      currency: "GBP",
+    },
+    {
+      id: "eurjpy",
+      category_id: "crosses",
+      symbol: "EUR/JPY",
+      name: "Euro / Japanese Yen",
+      region: "Global",
+      currency: "JPY",
+    },
+    {
+      id: "gbpjpy",
+      category_id: "crosses",
+      symbol: "GBP/JPY",
+      name: "British Pound / Japanese Yen",
+      region: "Global",
+      currency: "JPY",
+    },
+  ],
+  futures: [
+    {
+      id: "wti",
+      category_id: "energy",
+      symbol: "WTI",
+      name: "WTI Crude Oil",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "brent",
+      category_id: "energy",
+      symbol: "BRENT",
+      name: "Brent Crude Oil",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "natgas",
+      category_id: "energy",
+      symbol: "NATGAS",
+      name: "Natural Gas",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "copper",
+      category_id: "metals",
+      symbol: "COPPER",
+      name: "Copper",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "aluminum",
+      category_id: "metals",
+      symbol: "ALUMINUM",
+      name: "Aluminum",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "wheat",
+      category_id: "grains",
+      symbol: "WHEAT",
+      name: "Wheat",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "corn",
+      category_id: "grains",
+      symbol: "CORN",
+      name: "Corn",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "cotton",
+      category_id: "softs",
+      symbol: "COTTON",
+      name: "Cotton",
+      region: "Global",
+      currency: "USD",
+    },
+    {
+      id: "coffee",
+      category_id: "softs",
+      symbol: "COFFEE",
+      name: "Coffee",
+      region: "Global",
+      currency: "USD",
+    },
+  ],
+}
+
+export async function getAssetOverview(asset: MarketAsset, preferredProvider?: MarketProvider) {
+  if (!isTauriRuntime()) {
+    return buildPreviewAssetOverview(asset)
+  }
+
+  return invoke<AssetOverviewResponse>("get_asset_overview", {
+    asset,
+    preferredProvider,
+  })
+}
+
+function buildPreviewAssetOverview(asset: MarketAsset): AssetOverviewResponse {
+  const seeds = previewAssetSeeds[asset]
+  const rows = seeds.map((seed, index) => buildPreviewAssetRow(asset, seed, index))
+  const categories = marketAssetConfigs[asset].categories.map((category) => ({
+    id: category.id,
+    total: rows.filter((row) => row.category_id === category.id).length,
+  }))
+
+  return {
+    provider: "alpha-vantage",
+    asset,
+    updated_at: rows[0]?.as_of ?? null,
+    source_note: "Preview data for browser layout verification",
+    categories,
+    rows,
+  }
+}
+
+function buildPreviewAssetRow(
+  asset: MarketAsset,
+  seed: AssetPreviewSeed,
+  index: number
+): AssetOverviewRow {
+  const hash = `${asset}:${seed.symbol}`
+    .split("")
+    .reduce((total, char) => total + char.charCodeAt(0), 0)
+  const base = previewBaseValue(asset, hash)
+  const changePercent = (((hash + index * 17) % 900) - 450) / 100
+  const change = (base * changePercent) / 100
+  const previousClose = base - change
+  const high = base * (1 + ((hash % 35) + 8) / 1000)
+  const low = base * (1 - ((hash % 30) + 7) / 1000)
+  const open = previousClose * (1 + (((hash + 11) % 20) - 10) / 1000)
+
+  return {
+    id: seed.id,
+    category_id: seed.category_id,
+    symbol: seed.symbol,
+    name: seed.name,
+    region: seed.region,
+    currency: seed.currency,
+    price: roundMetric(base, asset === "forex" ? 4 : asset === "crypto" ? 2 : 2),
+    change: roundMetric(change, asset === "forex" ? 4 : 2),
+    change_percent: roundMetric(changePercent, 2),
+    open: roundMetric(open, asset === "forex" ? 4 : 2),
+    high: asset === "futures" ? null : roundMetric(high, asset === "forex" ? 4 : 2),
+    low: asset === "futures" ? null : roundMetric(low, asset === "forex" ? 4 : 2),
+    previous_close: roundMetric(previousClose, asset === "forex" ? 4 : 2),
+    as_of: `2026-06-07 ${String(9 + (index % 8)).padStart(2, "0")}:${String((index * 7) % 60).padStart(2, "0")}:00`,
+    technical_rating:
+      changePercent >= 2
+        ? "Strong buy"
+        : changePercent >= 0.4
+          ? "Buy"
+          : changePercent <= -2
+            ? "Strong sell"
+            : changePercent <= -0.4
+              ? "Sell"
+              : "Neutral",
+  }
+}
+
+function previewBaseValue(asset: MarketAsset, hash: number) {
+  switch (asset) {
+    case "stocks":
+      return 45 + (hash % 420)
+    case "etf":
+      return 35 + (hash % 250)
+    case "crypto":
+      return 0.6 + (hash % 700) * 0.9
+    case "forex":
+      return 0.6 + (hash % 90) / 20
+    case "futures":
+      return 20 + (hash % 130)
+  }
+}
+
+function roundMetric(value: number, digits: number) {
+  return Number(value.toFixed(digits))
 }

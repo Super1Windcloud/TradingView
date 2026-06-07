@@ -20,7 +20,7 @@ function readStoredAggregateProvider(): AggregateProvider {
 
   const stored = window.localStorage.getItem(aggregateProviderStorageKey)
 
-  if (stored === "auto" || stored === "finnhub") {
+  if (stored === "auto" || stored === "finnhub" || stored === "alpha-vantage") {
     return stored
   }
 

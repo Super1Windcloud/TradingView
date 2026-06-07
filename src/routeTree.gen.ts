@@ -9,12 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StocksRouteImport } from './routes/stocks'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as FuturesRouteImport } from './routes/futures'
+import { Route as ForexRouteImport } from './routes/forex'
+import { Route as EtfRouteImport } from './routes/etf'
 import { Route as CustomRouteImport } from './routes/custom'
+import { Route as CryptoRouteImport } from './routes/crypto'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 
+const StocksRoute = StocksRouteImport.update({
+  id: '/stocks',
+  path: '/stocks',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -25,9 +35,29 @@ const ProductsRoute = ProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FuturesRoute = FuturesRouteImport.update({
+  id: '/futures',
+  path: '/futures',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForexRoute = ForexRouteImport.update({
+  id: '/forex',
+  path: '/forex',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EtfRoute = EtfRouteImport.update({
+  id: '/etf',
+  path: '/etf',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CustomRoute = CustomRouteImport.update({
   id: '/custom',
   path: '/custom',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CryptoRoute = CryptoRouteImport.update({
+  id: '/crypto',
+  path: '/crypto',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,44 +73,102 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/crypto': typeof CryptoRoute
   '/custom': typeof CustomRoute
+  '/etf': typeof EtfRoute
+  '/forex': typeof ForexRoute
+  '/futures': typeof FuturesRoute
   '/products': typeof ProductsRoute
   '/settings': typeof SettingsRoute
+  '/stocks': typeof StocksRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/crypto': typeof CryptoRoute
   '/custom': typeof CustomRoute
+  '/etf': typeof EtfRoute
+  '/forex': typeof ForexRoute
+  '/futures': typeof FuturesRoute
   '/products': typeof ProductsRoute
   '/settings': typeof SettingsRoute
+  '/stocks': typeof StocksRoute
   '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/crypto': typeof CryptoRoute
   '/custom': typeof CustomRoute
+  '/etf': typeof EtfRoute
+  '/forex': typeof ForexRoute
+  '/futures': typeof FuturesRoute
   '/products': typeof ProductsRoute
   '/settings': typeof SettingsRoute
+  '/stocks': typeof StocksRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/custom' | '/products' | '/settings' | '/dashboard/'
+  fullPaths:
+    | '/'
+    | '/crypto'
+    | '/custom'
+    | '/etf'
+    | '/forex'
+    | '/futures'
+    | '/products'
+    | '/settings'
+    | '/stocks'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/custom' | '/products' | '/settings' | '/dashboard'
-  id: '__root__' | '/' | '/custom' | '/products' | '/settings' | '/dashboard/'
+  to:
+    | '/'
+    | '/crypto'
+    | '/custom'
+    | '/etf'
+    | '/forex'
+    | '/futures'
+    | '/products'
+    | '/settings'
+    | '/stocks'
+    | '/dashboard'
+  id:
+    | '__root__'
+    | '/'
+    | '/crypto'
+    | '/custom'
+    | '/etf'
+    | '/forex'
+    | '/futures'
+    | '/products'
+    | '/settings'
+    | '/stocks'
+    | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CryptoRoute: typeof CryptoRoute
   CustomRoute: typeof CustomRoute
+  EtfRoute: typeof EtfRoute
+  ForexRoute: typeof ForexRoute
+  FuturesRoute: typeof FuturesRoute
   ProductsRoute: typeof ProductsRoute
   SettingsRoute: typeof SettingsRoute
+  StocksRoute: typeof StocksRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/stocks': {
+      id: '/stocks'
+      path: '/stocks'
+      fullPath: '/stocks'
+      preLoaderRoute: typeof StocksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -95,11 +183,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/futures': {
+      id: '/futures'
+      path: '/futures'
+      fullPath: '/futures'
+      preLoaderRoute: typeof FuturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forex': {
+      id: '/forex'
+      path: '/forex'
+      fullPath: '/forex'
+      preLoaderRoute: typeof ForexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/etf': {
+      id: '/etf'
+      path: '/etf'
+      fullPath: '/etf'
+      preLoaderRoute: typeof EtfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/custom': {
       id: '/custom'
       path: '/custom'
       fullPath: '/custom'
       preLoaderRoute: typeof CustomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crypto': {
+      id: '/crypto'
+      path: '/crypto'
+      fullPath: '/crypto'
+      preLoaderRoute: typeof CryptoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,9 +237,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CryptoRoute: CryptoRoute,
   CustomRoute: CustomRoute,
+  EtfRoute: EtfRoute,
+  ForexRoute: ForexRoute,
+  FuturesRoute: FuturesRoute,
   ProductsRoute: ProductsRoute,
   SettingsRoute: SettingsRoute,
+  StocksRoute: StocksRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 export const routeTree = rootRouteImport

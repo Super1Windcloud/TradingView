@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { RefreshCw } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
+import { MarketSidebar } from "@/components/markets/sidebar"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -12,16 +13,16 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useI18n } from "@/lib/i18n"
 import {
   getIndicesOverview,
-  indexCategories,
   type IndexOverviewRow,
   type IndicesCategory,
+  indexCategories,
   indexCategoryIds,
-  providerLabels,
   type MarketProvider,
+  providerLabels,
 } from "@/lib/market-data"
-import { useI18n } from "@/lib/i18n"
 import { useMarketProviderStore } from "@/lib/market-provider"
 import { cn } from "@/lib/utils"
 
@@ -30,14 +31,6 @@ export const Route = createFileRoute("/")({
 })
 
 const defaultCategory: IndicesCategory = "all"
-const sidebarItems: Array<{ label: string; active?: boolean }> = [
-  { label: "Indices", active: true },
-  { label: "Stocks" },
-  { label: "Crypto" },
-  { label: "Forex" },
-  { label: "Futures" },
-  { label: "ETF" },
-] as const
 
 function IndicesPage() {
   const { t, locale } = useI18n()
@@ -46,9 +39,8 @@ function IndicesPage() {
   const [selectedTab, setSelectedTab] = useState("overview")
   const [reloadToken, setReloadToken] = useState(0)
   const [rows, setRows] = useState<IndexOverviewRow[]>([])
-  const [categoryCounts, setCategoryCounts] = useState<Record<IndicesCategory, number>>(
-    buildEmptyCategoryCounts
-  )
+  const [categoryCounts, setCategoryCounts] =
+    useState<Record<IndicesCategory, number>>(buildEmptyCategoryCounts)
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [sourceNote, setSourceNote] = useState("")
   const [resolvedProvider, setResolvedProvider] = useState<MarketProvider | null>(null)
@@ -57,6 +49,7 @@ function IndicesPage() {
 
   useEffect(() => {
     let ignore = false
+    void reloadToken
 
     async function load() {
       setIsLoading(true)
@@ -139,225 +132,198 @@ function IndicesPage() {
 
   return (
     <main className="flex min-h-full bg-[#16181a] text-[#f2f2f2]">
-      <aside className="hidden w-[248px] shrink-0 border-r border-[#2b2e33] bg-[#17191b] lg:flex lg:flex-col">
-        <div className="flex h-12 items-center border-b border-[#2b2e33] px-4">
-          <span className="text-sm font-semibold text-[#f3f4f6]">AstraQuant</span>
-        </div>
-
-        <div className="flex-1 px-3 py-4">
-          <div className="px-2 text-[11px] tracking-wide text-[#7f878f] uppercase">Markets</div>
-          <div className="mt-2 space-y-1">
-            {sidebarItems.map((item) => (
-              <button
-                type="button"
-                key={item.label}
-                className={cn(
-                  "flex h-9 w-full items-center rounded-md px-3 text-left text-sm transition-colors",
-                  item.active
-                    ? "bg-[#25292d] text-[#f3f4f6]"
-                    : "text-[#a7afb7] hover:bg-[#212428] hover:text-[#eceff2]"
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-6 px-2 text-[11px] tracking-wide text-[#7f878f] uppercase">
-            Current view
-          </div>
-          <div className="mt-2 rounded-md border border-[#2b2f34] bg-[#1d2023] px-3 py-3 text-sm text-[#c7cdd4]">
-            Indices home
-          </div>
-        </div>
-
-        <div className="border-t border-[#2b2e33] px-4 py-3 text-xs text-[#7f878f]">
-          {formatAggregateProvider(aggregateProvider, resolvedProvider, t)}
-        </div>
-      </aside>
+      <MarketSidebar
+        currentView={t("assetIndex")}
+        footer={formatAggregateProvider(aggregateProvider, resolvedProvider, t)}
+      />
 
       <section className="min-w-0 flex-1 bg-[#1b1d1f]">
         <div className="mx-auto flex w-full max-w-[1600px] flex-col px-5 pt-6 pb-8 sm:px-8">
-        <div className="flex flex-wrap gap-2">
-          {indexCategories.map((category) => {
-            const isActive = selectedCategory === category.id
+          <div className="flex flex-wrap gap-2">
+            {indexCategories.map((category) => {
+              const isActive = selectedCategory === category.id
 
-            return (
-              <button
+              return (
+                <button
+                  type="button"
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id)}
+                  className={cn(
+                    "inline-flex h-8 items-center rounded-full border px-3 text-[13px] transition-colors",
+                    isActive
+                      ? "border-[#6b5a42] bg-[#2a2d31] text-[#f5e5cf]"
+                      : "border-[#34373b] bg-[#202326] text-[#d5d7da] hover:bg-[#26292d]"
+                  )}
+                >
+                  {t(category.i18nKey as never)}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="mt-7 max-w-[760px]">
+            <h1 className="text-[22px] font-semibold tracking-normal text-[#f1e2d0]">
+              {t("indicesTitle")}
+            </h1>
+            <p className="mt-3 text-[15px] leading-8 text-[#ddd3c5]">{t("indicesDescription")}</p>
+          </div>
+
+          <div className="mt-8 flex items-center justify-between gap-4 border-b border-[#31353a]">
+            <Tabs value={selectedTab} onValueChange={setSelectedTab} className="gap-0">
+              <TabsList variant="line" className="h-11 gap-5 p-0 text-[#aab0b6]">
+                <TabsTrigger
+                  value="overview"
+                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
+                >
+                  {t("indicesTabOverview")}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="performance"
+                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
+                >
+                  {t("indicesTabPerformance")}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="technicals"
+                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
+                >
+                  {t("indicesTabTechnicals")}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="mb-2 flex items-center gap-3">
+              <div className="hidden text-right text-xs text-[#8f959c] md:block">
+                <div>{formatAggregateProvider(aggregateProvider, resolvedProvider, t)}</div>
+                <div>{updatedAt ?? sourceNote}</div>
+              </div>
+              <Button
                 type="button"
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={cn(
-                  "inline-flex h-8 items-center rounded-full border px-3 text-[13px] transition-colors",
-                  isActive
-                    ? "border-[#6b5a42] bg-[#2a2d31] text-[#f5e5cf]"
-                    : "border-[#34373b] bg-[#202326] text-[#d5d7da] hover:bg-[#26292d]"
-                )}
+                variant="outline"
+                size="icon-sm"
+                className="border-[#3a3e44] bg-[#202326] text-[#dfe3e6] hover:bg-[#292d31] hover:text-[#f5f5f5]"
+                onClick={() => setReloadToken((value) => value + 1)}
+                disabled={isLoading}
+                aria-label={t("indicesRefresh")}
               >
-                {t(category.i18nKey as never)}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="mt-7 max-w-[760px]">
-          <h1 className="text-[22px] font-semibold tracking-normal text-[#f1e2d0]">
-            {t("indicesTitle")}
-          </h1>
-          <p className="mt-3 text-[15px] leading-8 text-[#ddd3c5]">{t("indicesDescription")}</p>
-        </div>
-
-        <div className="mt-8 flex items-center justify-between gap-4 border-b border-[#31353a]">
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="gap-0">
-            <TabsList variant="line" className="h-11 gap-5 p-0 text-[#aab0b6]">
-              <TabsTrigger
-                value="overview"
-                className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
-              >
-                {t("indicesTabOverview")}
-              </TabsTrigger>
-              <TabsTrigger
-                value="performance"
-                className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
-              >
-                {t("indicesTabPerformance")}
-              </TabsTrigger>
-              <TabsTrigger
-                value="technicals"
-                className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
-              >
-                {t("indicesTabTechnicals")}
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="mb-2 flex items-center gap-3">
-            <div className="hidden text-right text-xs text-[#8f959c] md:block">
-              <div>{formatAggregateProvider(aggregateProvider, resolvedProvider, t)}</div>
-              <div>{updatedAt ?? sourceNote}</div>
+                <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-sm"
-              className="border-[#3a3e44] bg-[#202326] text-[#dfe3e6] hover:bg-[#292d31] hover:text-[#f5f5f5]"
-              onClick={() => setReloadToken((value) => value + 1)}
-              disabled={isLoading}
-              aria-label={t("indicesRefresh")}
-            >
-              <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
-            </Button>
           </div>
-        </div>
 
-        {error ? (
-          <div className="mt-4 border border-[#5f2d2d] bg-[#2b1d1d] px-4 py-3 text-sm text-[#ffb4b4]">
-            {t("indicesLoadFailed")}: {error}
-          </div>
-        ) : null}
+          {error ? (
+            <div className="mt-4 border border-[#5f2d2d] bg-[#2b1d1d] px-4 py-3 text-sm text-[#ffb4b4]">
+              {t("indicesLoadFailed")}: {error}
+            </div>
+          ) : null}
 
-        <section className="mt-1 overflow-hidden">
-          <Table className="min-w-[1180px]">
-            <TableHeader>
-              <TableRow className="border-[#31353a] hover:bg-transparent">
-                <TableHead className="h-auto px-0 py-3 text-xs font-medium text-[#8d949b]">
-                  <div className="pl-4">
-                    <div>{t("indicesTableSymbol")}</div>
-                    <div className="mt-1">{categoryCounts[selectedCategory]}</div>
-                  </div>
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
-                  {t("indicesTablePrice")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
-                  {t("indicesTableChangePct")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
-                  {t("indicesTableChange")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
-                  {t("indicesTableHigh")}
-                </TableHead>
-                <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
-                  {t("indicesTableLow")}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-right text-xs font-medium text-[#8d949b]">
-                  {t("indicesTableTechRating")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayRows.length === 0 ? (
-                <TableRow className="border-[#2f3338] hover:bg-transparent">
-                  <TableCell colSpan={7} className="px-4 py-8 text-center text-sm text-[#98a0a8]">
-                    {isLoading ? t("waitingForData") : t("indicesNoData")}
-                  </TableCell>
+          <section className="mt-1 overflow-hidden">
+            <Table className="min-w-[1180px]">
+              <TableHeader>
+                <TableRow className="border-[#31353a] hover:bg-transparent">
+                  <TableHead className="h-auto px-0 py-3 text-xs font-medium text-[#8d949b]">
+                    <div className="pl-4">
+                      <div>{t("indicesTableSymbol")}</div>
+                      <div className="mt-1">{categoryCounts[selectedCategory]}</div>
+                    </div>
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                    {t("indicesTablePrice")}
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                    {t("indicesTableChangePct")}
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                    {t("indicesTableChange")}
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                    {t("indicesTableHigh")}
+                  </TableHead>
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                    {t("indicesTableLow")}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-right text-xs font-medium text-[#8d949b]">
+                    {t("indicesTableTechRating")}
+                  </TableHead>
                 </TableRow>
-              ) : (
-                displayRows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    className="border-[#2f3338] text-[14px] hover:bg-[#202428]/80"
-                  >
-                    <TableCell className="px-0 py-0">
-                      <div className="grid min-h-[44px] grid-cols-[44px_minmax(0,1fr)] items-center gap-0 pl-4">
-                        <IndexBadge symbol={row.symbol} />
-                        <div className="min-w-0 py-3">
-                          <div className="flex items-center gap-3">
-                            <span className="rounded bg-[#25292d] px-2 py-1 text-[12px] leading-none text-[#f0f3f5]">
-                              {row.symbol}
-                            </span>
-                            <span className="truncate text-[#f2f4f6]">{row.name}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-3 py-3 text-right text-[#eff3f6]">
-                      {formatMarketValue(row.price, locale, 2)}
-                      {row.currency ? (
-                        <span className="ml-1 text-[10px] uppercase text-[#a0a7ae]">
-                          {row.currency}
-                        </span>
-                      ) : null}
-                    </TableCell>
-                    <TableCell
-                      className={cn("px-3 py-3 text-right", getSignedColorClass(row.change_percent))}
-                    >
-                      {formatPercent(row.change_percent, locale)}
-                    </TableCell>
-                    <TableCell
-                      className={cn("px-3 py-3 text-right", getSignedColorClass(row.change))}
-                    >
-                      {formatSignedValue(row.change, locale, 2)}
-                      {row.currency ? (
-                        <span className="ml-1 text-[10px] uppercase opacity-80">{row.currency}</span>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="px-3 py-3 text-right text-[#edf1f4]">
-                      {formatMarketValue(row.high, locale, 2)}
-                    </TableCell>
-                    <TableCell className="px-3 py-3 text-right text-[#edf1f4]">
-                      {formatMarketValue(row.low, locale, 2)}
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-right">
-                      <span className={cn("text-[14px]", getRatingClass(row.technical_rating))}>
-                        {row.technical_rating}
-                      </span>
+              </TableHeader>
+              <TableBody>
+                {displayRows.length === 0 ? (
+                  <TableRow className="border-[#2f3338] hover:bg-transparent">
+                    <TableCell colSpan={7} className="px-4 py-8 text-center text-sm text-[#98a0a8]">
+                      {isLoading ? t("waitingForData") : t("indicesNoData")}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </section>
+                ) : (
+                  displayRows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      className="border-[#2f3338] text-[14px] hover:bg-[#202428]/80"
+                    >
+                      <TableCell className="px-0 py-0">
+                        <div className="grid min-h-[44px] grid-cols-[44px_minmax(0,1fr)] items-center gap-0 pl-4">
+                          <IndexBadge symbol={row.symbol} />
+                          <div className="min-w-0 py-3">
+                            <div className="flex items-center gap-3">
+                              <span className="rounded bg-[#25292d] px-2 py-1 text-[12px] leading-none text-[#f0f3f5]">
+                                {row.symbol}
+                              </span>
+                              <span className="truncate text-[#f2f4f6]">{row.name}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-3 py-3 text-right text-[#eff3f6]">
+                        {formatMarketValue(row.price, locale, 2)}
+                        {row.currency ? (
+                          <span className="ml-1 text-[10px] uppercase text-[#a0a7ae]">
+                            {row.currency}
+                          </span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "px-3 py-3 text-right",
+                          getSignedColorClass(row.change_percent)
+                        )}
+                      >
+                        {formatPercent(row.change_percent, locale)}
+                      </TableCell>
+                      <TableCell
+                        className={cn("px-3 py-3 text-right", getSignedColorClass(row.change))}
+                      >
+                        {formatSignedValue(row.change, locale, 2)}
+                        {row.currency ? (
+                          <span className="ml-1 text-[10px] uppercase opacity-80">
+                            {row.currency}
+                          </span>
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="px-3 py-3 text-right text-[#edf1f4]">
+                        {formatMarketValue(row.high, locale, 2)}
+                      </TableCell>
+                      <TableCell className="px-3 py-3 text-right text-[#edf1f4]">
+                        {formatMarketValue(row.low, locale, 2)}
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-right">
+                        <span className={cn("text-[14px]", getRatingClass(row.technical_rating))}>
+                          {row.technical_rating}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </section>
 
-        <div className="mt-4 flex items-center justify-between text-xs text-[#818891]">
-          <div>{countLabel}</div>
-          <div className="text-right">
-            <div>{sourceNote || t("indicesPreviewSource")}</div>
-            {updatedAt ? <div className="mt-1">{updatedAt}</div> : null}
+          <div className="mt-4 flex items-center justify-between text-xs text-[#818891]">
+            <div>{countLabel}</div>
+            <div className="text-right">
+              <div>{sourceNote || t("indicesPreviewSource")}</div>
+              {updatedAt ? <div className="mt-1">{updatedAt}</div> : null}
+            </div>
           </div>
-        </div>
         </div>
       </section>
     </main>

@@ -8,14 +8,11 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { providerLabels } from "@/lib/market-data"
-import {
-  type AggregateProvider,
-  useMarketProviderStore,
-} from "@/lib/market-provider"
 import { useI18n } from "@/lib/i18n"
+import { providerLabels } from "@/lib/market-data"
+import { type AggregateProvider, useMarketProviderStore } from "@/lib/market-provider"
 
-const aggregateProviderOptions: AggregateProvider[] = ["auto", "finnhub"]
+const aggregateProviderOptions: AggregateProvider[] = ["auto", "alpha-vantage", "finnhub"]
 
 export function MarketProviderSwitcher() {
   const { aggregateProvider, setAggregateProvider } = useMarketProviderStore()
@@ -32,7 +29,9 @@ export function MarketProviderSwitcher() {
           aria-label={t("aggregateProvider")}
         >
           <Database className="size-4" />
-          <span className="hidden lg:inline">{getAggregateProviderLabel(aggregateProvider, t)}</span>
+          <span className="hidden lg:inline">
+            {getAggregateProviderLabel(aggregateProvider, t)}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
