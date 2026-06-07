@@ -30,6 +30,7 @@ pub(crate) const MARKET_LOG_TARGET: &str = "astraquant::market_data";
 static ENV_LOADER: Once = Once::new();
 static SNAPSHOT_CACHE: OnceLock<Mutex<HashMap<String, CachedSnapshot>>> = OnceLock::new();
 static ALPHA_RATE_LIMITER: OnceLock<Mutex<Option<Instant>>> = OnceLock::new();
+static ALPHA_DAILY_LIMIT_REACHED: OnceLock<Mutex<bool>> = OnceLock::new();
 
 #[derive(Clone)]
 struct CachedSnapshot {
@@ -196,6 +197,7 @@ fn get_asset_overview_sync(
 
     let selected_asset = normalize_asset(&asset)?;
     let provider = resolve_asset_provider(&selected_asset, preferred_provider.as_deref())?;
+    let provider = maybe_fallback_asset_provider(&selected_asset, provider);
     let client = build_http_client()?;
     let definitions = definitions_for_asset(&selected_asset)
         .ok_or_else(|| format!("Unsupported asset overview request: {}", selected_asset))?;
@@ -281,15 +283,16 @@ fn get_market_item_detail_sync(
         let provider = resolve_indices_provider(preferred_provider.as_deref())?;
         let snapshot = fetch_index_snapshot(&client, definition)?;
 
-        market_detail_from_index(definition, snapshot, provider)
+        market_detail_from_index(definition, snapshot)
     } else {
         let asset = normalize_asset(&selected_kind)?;
+        let provider = resolve_asset_provider(&asset, preferred_provider.as_deref())?;
+        let provider = maybe_fallback_asset_provider(&asset, provider);
         let definition = asset_definition_by_id(&asset, &item_id)
             .ok_or_else(|| format!("Unknown market detail item id: {item_id}"))?;
-        let provider = resolve_asset_provider(&asset, preferred_provider.as_deref())?;
         let snapshot = fetch_asset_snapshot(&client, provider, &asset, definition)?;
 
-        market_detail_from_asset(&asset, definition, snapshot, provider)
+        market_detail_from_asset(&asset, definition, snapshot)
     }?;
 
     info!(
@@ -451,6 +454,13 @@ fn request_alpha_json(
     operation: &str,
     subject: &str,
 ) -> Result<Value, String> {
+    if alpha_daily_limit_reached() {
+        return Err(
+            "Alpha Vantage daily rate limit already reached for current app session."
+                .to_string(),
+        );
+    }
+
     wait_for_alpha_slot();
     let value: Value = request_json(client, url, "alpha-vantage", operation, subject)?;
 
@@ -460,8 +470,15 @@ fn request_alpha_json(
         .or_else(|| value.get("Note").and_then(Value::as_str))
         .or_else(|| value.get("Information").and_then(Value::as_str))
     {
-        let full_message =
-            format!("Alpha Vantage {operation} request failed for {subject}: {message}");
+        let sanitized_message = sanitize_provider_message(message);
+
+        if is_alpha_daily_limit_message(&sanitized_message) {
+            mark_alpha_daily_limit_reached();
+        }
+
+        let full_message = format!(
+            "Alpha Vantage {operation} request failed for {subject}: {sanitized_message}"
+        );
         warn!(target: MARKET_LOG_TARGET, "{full_message}");
         return Err(full_message);
     }
@@ -572,6 +589,18 @@ fn fetch_asset_snapshot(
         return Ok(snapshot);
     }
 
+    if provider == "alpha-vantage" && alpha_daily_limit_reached() {
+        if let Some(snapshot) = try_finnhub_fallback(client, asset, definition)? {
+            store_cached_snapshot(cache_key, &snapshot);
+            return Ok(snapshot);
+        }
+
+        return Err(
+            "Alpha Vantage daily rate limit already reached for current app session."
+                .to_string(),
+        );
+    }
+
     let snapshot = match provider {
         "finnhub" => {
             let symbol = definition
@@ -603,7 +632,19 @@ fn fetch_asset_snapshot(
             }
         },
         _ => Err(format!("Unsupported market data provider: {provider}")),
-    }?;
+    };
+
+    let snapshot = match snapshot {
+        Ok(snapshot) => snapshot,
+        Err(error) if provider == "alpha-vantage" && is_alpha_daily_limit_message(&error) => {
+            if let Some(snapshot) = try_finnhub_fallback(client, asset, definition)? {
+                snapshot
+            } else {
+                return Err(error);
+            }
+        }
+        Err(error) => return Err(error),
+    };
 
     store_cached_snapshot(cache_key, &snapshot);
     Ok(snapshot)
@@ -625,6 +666,23 @@ fn snapshot_cache() -> &'static Mutex<HashMap<String, CachedSnapshot>> {
 
 fn alpha_rate_limiter() -> &'static Mutex<Option<Instant>> {
     ALPHA_RATE_LIMITER.get_or_init(|| Mutex::new(None))
+}
+
+fn alpha_daily_limit_state() -> &'static Mutex<bool> {
+    ALPHA_DAILY_LIMIT_REACHED.get_or_init(|| Mutex::new(false))
+}
+
+fn alpha_daily_limit_reached() -> bool {
+    alpha_daily_limit_state()
+        .lock()
+        .map(|state| *state)
+        .unwrap_or(false)
+}
+
+fn mark_alpha_daily_limit_reached() {
+    if let Ok(mut state) = alpha_daily_limit_state().lock() {
+        *state = true;
+    }
 }
 
 fn read_cached_snapshot(key: &str, ttl: Duration) -> Option<MarketSnapshot> {
@@ -720,10 +778,9 @@ fn market_detail_from_asset(
     asset: &str,
     definition: &AssetDefinition,
     snapshot: MarketSnapshot,
-    provider: &str,
 ) -> Result<MarketItemDetailResponse, String> {
     Ok(MarketItemDetailResponse {
-        provider: provider.to_string(),
+        provider: snapshot.provider.clone(),
         kind: asset.to_string(),
         id: definition.id.to_string(),
         symbol: definition.code.to_string(),
@@ -786,10 +843,9 @@ fn index_row_from_snapshot(
 fn market_detail_from_index(
     definition: &IndexDefinition,
     snapshot: MarketSnapshot,
-    provider: &str,
 ) -> Result<MarketItemDetailResponse, String> {
     Ok(MarketItemDetailResponse {
-        provider: provider.to_string(),
+        provider: snapshot.provider.clone(),
         kind: "indices".to_string(),
         id: definition.id.to_string(),
         symbol: definition.code.to_string(),
@@ -821,6 +877,40 @@ fn fetch_index_snapshot(
         .ok_or_else(|| format!("Missing Finnhub symbol mapping for {}", definition.code))?;
 
     fetch_finnhub(client, symbol, "index")
+}
+
+fn maybe_fallback_asset_provider<'a>(asset: &str, provider: &'a str) -> &'a str {
+    if provider == "alpha-vantage"
+        && alpha_daily_limit_reached()
+        && super::resolve::asset_supports_provider(asset, "finnhub")
+    {
+        return "finnhub";
+    }
+
+    provider
+}
+
+fn try_finnhub_fallback(
+    client: &reqwest::blocking::Client,
+    asset: &str,
+    definition: &AssetDefinition,
+) -> Result<Option<MarketSnapshot>, String> {
+    let Some(symbol) = definition.finnhub_symbol else {
+        return Ok(None);
+    };
+
+    if !super::resolve::asset_supports_provider(asset, "finnhub") {
+        return Ok(None);
+    }
+
+    info!(
+        target: MARKET_LOG_TARGET,
+        "falling back to finnhub after alpha-vantage limit asset={} symbol={}",
+        asset,
+        definition.code
+    );
+
+    fetch_finnhub(client, symbol, asset).map(Some)
 }
 
 fn technical_rating(change_percent: Option<f64>) -> String {
@@ -1095,4 +1185,23 @@ fn parse_digital_metric(entry: &Map<String, Value>, metric: &str, market: &str) 
             None
         }
     })
+}
+
+fn is_alpha_daily_limit_message(message: &str) -> bool {
+    let normalized = message.to_ascii_lowercase();
+    normalized.contains("25 requests per day")
+        || normalized.contains("daily rate limit")
+        || normalized.contains("standard api rate limit")
+}
+
+fn sanitize_provider_message(message: &str) -> String {
+    let mut sanitized = message.to_string();
+
+    if let Ok(key) = env::var("ALPHA_API_KEY") {
+        if !key.trim().is_empty() {
+            sanitized = sanitized.replace(&key, "[redacted]");
+        }
+    }
+
+    sanitized
 }
