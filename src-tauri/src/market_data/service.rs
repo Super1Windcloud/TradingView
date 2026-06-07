@@ -35,7 +35,19 @@ struct CachedSnapshot {
 }
 
 #[tauri::command]
-pub(crate) fn get_market_snapshot(
+pub(crate) async fn get_market_snapshot(
+    provider: String,
+    symbol: String,
+    asset_class: String,
+) -> Result<MarketSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        get_market_snapshot_sync(provider, symbol, asset_class)
+    })
+    .await
+    .map_err(|error| format!("Market snapshot worker failed: {error}"))?
+}
+
+fn get_market_snapshot_sync(
     provider: String,
     symbol: String,
     asset_class: String,
@@ -82,7 +94,18 @@ pub(crate) fn get_market_snapshot(
 }
 
 #[tauri::command]
-pub(crate) fn get_indices_overview(
+pub(crate) async fn get_indices_overview(
+    category: String,
+    preferred_provider: Option<String>,
+) -> Result<IndicesOverviewResponse, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        get_indices_overview_sync(category, preferred_provider)
+    })
+    .await
+    .map_err(|error| format!("Indices overview worker failed: {error}"))?
+}
+
+fn get_indices_overview_sync(
     category: String,
     preferred_provider: Option<String>,
 ) -> Result<IndicesOverviewResponse, String> {
@@ -144,7 +167,16 @@ pub(crate) fn get_indices_overview(
 }
 
 #[tauri::command]
-pub(crate) fn get_asset_overview(
+pub(crate) async fn get_asset_overview(
+    asset: String,
+    preferred_provider: Option<String>,
+) -> Result<AssetOverviewResponse, String> {
+    tauri::async_runtime::spawn_blocking(move || get_asset_overview_sync(asset, preferred_provider))
+        .await
+        .map_err(|error| format!("Asset overview worker failed: {error}"))?
+}
+
+fn get_asset_overview_sync(
     asset: String,
     preferred_provider: Option<String>,
 ) -> Result<AssetOverviewResponse, String> {
@@ -208,7 +240,19 @@ pub(crate) fn get_asset_overview(
 }
 
 #[tauri::command]
-pub(crate) fn get_market_item_detail(
+pub(crate) async fn get_market_item_detail(
+    kind: String,
+    item_id: String,
+    preferred_provider: Option<String>,
+) -> Result<MarketItemDetailResponse, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        get_market_item_detail_sync(kind, item_id, preferred_provider)
+    })
+    .await
+    .map_err(|error| format!("Market detail worker failed: {error}"))?
+}
+
+fn get_market_item_detail_sync(
     kind: String,
     item_id: String,
     preferred_provider: Option<String>,
