@@ -226,56 +226,88 @@ export function MarketOverviewPage({ asset }: MarketOverviewPageProps) {
 
           <ScrollArea className={cn("min-h-0 flex-1", error ? "mt-4" : "mt-6")}>
             <div className="pb-2 pr-3">
-              {sections.map((section, index) => (
-                <section
-                  key={section.id}
-                  id={`market-section-${section.id}`}
-                  className={cn(index === 0 ? "" : "mt-8")}
-                >
-                  <div className="mb-3 flex items-end justify-between gap-4">
-                    <div>
-                      <h2 className="text-[18px] font-semibold text-foreground">
-                        {t(section.label_key as never)}
-                      </h2>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {section.total} {t("indicesTableSymbol")}
+              {isInitialLoading ? (
+                <section className="overflow-hidden rounded-xl border border-border/60 bg-background/72 backdrop-blur-xl supports-[backdrop-filter]:bg-background/58">
+                  <Table className="min-w-[1180px]">
+                    <TableHeader>
+                      <TableRow className="border-border/60 hover:bg-transparent">
+                        <TableHead className="h-auto px-0 py-3 text-xs font-medium text-muted-foreground">
+                          <div className="pl-4">
+                            <div>{t("indicesTableSymbol")}</div>
+                            <div className="mt-1">--</div>
+                          </div>
+                        </TableHead>
+                        <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                          {t("indicesTablePrice")}
+                        </TableHead>
+                        <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                          {t("indicesTableChangePct")}
+                        </TableHead>
+                        <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                          {t("indicesTableChange")}
+                        </TableHead>
+                        <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                          {t("indicesTableHigh")}
+                        </TableHead>
+                        <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                          {t("indicesTableLow")}
+                        </TableHead>
+                        <TableHead className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
+                          {t("indicesTableTechRating")}
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <MarketTableSkeletonBody rowCount={8} />
+                  </Table>
+                </section>
+              ) : (
+                sections.map((section, index) => (
+                  <section
+                    key={section.id}
+                    id={`market-section-${section.id}`}
+                    className={cn(index === 0 ? "" : "mt-8")}
+                  >
+                    <div className="mb-3 flex items-end justify-between gap-4">
+                      <div>
+                        <h2 className="text-[18px] font-semibold text-foreground">
+                          {t(section.label_key as never)}
+                        </h2>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {section.total} {t("indicesTableSymbol")}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="overflow-hidden rounded-xl border border-border/60 bg-background/72 backdrop-blur-xl supports-[backdrop-filter]:bg-background/58">
-                    <Table className="min-w-[1180px]">
-                      <TableHeader>
-                        <TableRow className="border-border/60 hover:bg-transparent">
-                          <TableHead className="h-auto px-0 py-3 text-xs font-medium text-muted-foreground">
-                            <div className="pl-4">
-                              <div>{t("indicesTableSymbol")}</div>
-                              <div className="mt-1">{section.total}</div>
-                            </div>
-                          </TableHead>
-                          <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                            {t("indicesTablePrice")}
-                          </TableHead>
-                          <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                            {t("indicesTableChangePct")}
-                          </TableHead>
-                          <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                            {t("indicesTableChange")}
-                          </TableHead>
-                          <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                            {t("indicesTableHigh")}
-                          </TableHead>
-                          <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                            {t("indicesTableLow")}
-                          </TableHead>
-                          <TableHead className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
-                            {t("indicesTableTechRating")}
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      {isInitialLoading ? (
-                        <MarketTableSkeletonBody rowCount={3} />
-                      ) : (
+                    <div className="overflow-hidden rounded-xl border border-border/60 bg-background/72 backdrop-blur-xl supports-[backdrop-filter]:bg-background/58">
+                      <Table className="min-w-[1180px]">
+                        <TableHeader>
+                          <TableRow className="border-border/60 hover:bg-transparent">
+                            <TableHead className="h-auto px-0 py-3 text-xs font-medium text-muted-foreground">
+                              <div className="pl-4">
+                                <div>{t("indicesTableSymbol")}</div>
+                                <div className="mt-1">{section.total}</div>
+                              </div>
+                            </TableHead>
+                            <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                              {t("indicesTablePrice")}
+                            </TableHead>
+                            <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                              {t("indicesTableChangePct")}
+                            </TableHead>
+                            <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                              {t("indicesTableChange")}
+                            </TableHead>
+                            <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                              {t("indicesTableHigh")}
+                            </TableHead>
+                            <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                              {t("indicesTableLow")}
+                            </TableHead>
+                            <TableHead className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
+                              {t("indicesTableTechRating")}
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
                         <TableBody>
                           {section.rows.length === 0 ? (
                             <TableRow className="border-border/50 hover:bg-transparent">
@@ -355,11 +387,11 @@ export function MarketOverviewPage({ asset }: MarketOverviewPageProps) {
                             ))
                           )}
                         </TableBody>
-                      )}
-                    </Table>
-                  </div>
-                </section>
-              ))}
+                      </Table>
+                    </div>
+                  </section>
+                ))
+              )}
 
               <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
                 <div>
