@@ -57,7 +57,7 @@ export function EtfOverviewPage() {
       setError(null)
 
       try {
-        const overview = await getAssetOverview("etf", effectiveProvider)
+        const overview = await getAssetOverview("etf", effectiveProvider, activeFilterId)
 
         if (ignore) {
           return
@@ -103,7 +103,7 @@ export function EtfOverviewPage() {
     return () => {
       ignore = true
     }
-  }, [effectiveProvider, reloadToken])
+  }, [activeFilterId, effectiveProvider, reloadToken])
 
   const filterItems = useMemo(
     () => [
@@ -113,12 +113,7 @@ export function EtfOverviewPage() {
     [categories, t]
   )
 
-  const filteredRows = useMemo(() => {
-    const scopedRows =
-      activeFilterId === "all" ? rows : rows.filter((row) => row.category_id === activeFilterId)
-
-    return sortRowsForTab(scopedRows, selectedTab)
-  }, [activeFilterId, rows, selectedTab])
+  const filteredRows = useMemo(() => sortRowsForTab(rows, selectedTab), [rows, selectedTab])
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
 

@@ -181,15 +181,19 @@ fn get_indices_overview_sync(
 #[tauri::command]
 pub(crate) async fn get_asset_overview(
     asset: String,
+    category: Option<String>,
     preferred_provider: Option<String>,
 ) -> Result<AssetOverviewResponse, String> {
-    tauri::async_runtime::spawn_blocking(move || get_asset_overview_sync(asset, preferred_provider))
-        .await
-        .map_err(|error| format!("Asset overview worker failed: {error}"))?
+    tauri::async_runtime::spawn_blocking(move || {
+        get_asset_overview_sync(asset, category, preferred_provider)
+    })
+    .await
+    .map_err(|error| format!("Asset overview worker failed: {error}"))?
 }
 
 fn get_asset_overview_sync(
     asset: String,
+    category: Option<String>,
     preferred_provider: Option<String>,
 ) -> Result<AssetOverviewResponse, String> {
     load_env();
@@ -201,21 +205,35 @@ fn get_asset_overview_sync(
     );
 
     let selected_asset = normalize_asset(&asset)?;
+    let selected_category = category
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty() && *value != "all")
+        .map(str::to_string);
     let provider = resolve_asset_provider(&selected_asset, preferred_provider.as_deref())?;
     let client = build_http_client()?;
     let definitions = definitions_for_asset(&selected_asset)
         .ok_or_else(|| format!("Unsupported asset overview request: {}", selected_asset))?;
+    let filtered_definitions = if let Some(category_id) = selected_category.as_deref() {
+        definitions
+            .iter()
+            .filter(|definition| definition.category == category_id)
+            .collect::<Vec<_>>()
+    } else {
+        definitions.iter().collect::<Vec<_>>()
+    };
 
     info!(
         target: MARKET_LOG_TARGET,
-        "get_asset_overview provider_resolved provider={} asset={} definitions={}",
+        "get_asset_overview provider_resolved provider={} asset={} category={:?} definitions={}",
         provider,
         selected_asset,
-        definitions.len()
+        selected_category,
+        filtered_definitions.len()
     );
 
     let (rows, unavailable_count) =
-        fetch_assets_with_provider(&client, provider, &selected_asset, definitions)?;
+        fetch_assets_with_provider(&client, provider, &selected_asset, &filtered_definitions)?;
 
     let updated_at = rows.iter().find_map(|row| row.as_of.clone());
     let source_note = if unavailable_count == 0 {
@@ -820,7 +838,7 @@ fn fetch_assets_with_provider(
     client: &reqwest::blocking::Client,
     provider: &str,
     asset: &str,
-    definitions: &[AssetDefinition],
+    definitions: &[&AssetDefinition],
 ) -> Result<(Vec<AssetOverviewRow>, usize), String> {
     let mut rows = Vec::with_capacity(definitions.len());
     let mut unavailable_count = 0;
