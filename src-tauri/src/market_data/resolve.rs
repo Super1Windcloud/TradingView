@@ -25,6 +25,14 @@ pub(crate) fn resolve_indices_provider(preferred: Option<&str>) -> Result<&'stat
                 );
                 Ok("finnhub")
             }
+            "tradingview" => {
+                info!(
+                    target: MARKET_LOG_TARGET,
+                    "resolved indices provider requested={} selected=tradingview",
+                    provider
+                );
+                Ok("tradingview")
+            }
             "finnhub" => {
                 let message =
                     "Finnhub API key is not configured for aggregated indices".to_string();
@@ -82,6 +90,7 @@ pub(crate) fn resolve_asset_provider(
                 }
             }
             "alpha-vantage" => Err("Alpha Vantage API key is not configured".to_string()),
+            "tradingview" => Ok("tradingview"),
             "finnhub" if has_env_key(&["FINNHUB_API_KEY", "FINNHUB_TOKEN"]) => {
                 if asset_supports_provider(asset, "finnhub") {
                     Ok("finnhub")

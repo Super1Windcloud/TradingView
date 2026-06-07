@@ -139,6 +139,7 @@ fn get_indices_overview_sync(
 
     let (rows, unavailable_count) = match provider {
         "finnhub" => fetch_indices_with_symbol_loop(&client, &definitions)?,
+        "tradingview" => fetch_indices_with_tradingview_loop(&definitions)?,
         _ => return Err(format!("Unsupported market data provider: {provider}")),
     };
 
@@ -770,6 +771,51 @@ fn fetch_indices_with_symbol_loop(
     Ok((rows, unavailable_count))
 }
 
+fn fetch_indices_with_tradingview_loop(
+    definitions: &[&IndexDefinition],
+) -> Result<(Vec<IndexOverviewRow>, usize), String> {
+    info!(
+        target: MARKET_LOG_TARGET,
+        "aggregated symbol loop start provider=tradingview symbols={}",
+        definitions.len()
+    );
+    let mut rows = Vec::with_capacity(definitions.len());
+    let mut unavailable_count = 0;
+
+    for definition in definitions {
+        let snapshot = match index_tradingview_symbol(definition.id) {
+            Some(symbol) => match fetch_tradingview_snapshot("indices", definition.id, definition.code, symbol) {
+                Ok(snapshot) => Some(snapshot),
+                Err(error) => {
+                    unavailable_count += 1;
+                    warn!(
+                        target: MARKET_LOG_TARGET,
+                        "aggregated quote unavailable provider=tradingview provider_symbol={} index_code={} error={}",
+                        symbol,
+                        definition.code,
+                        error
+                    );
+                    None
+                }
+            },
+            None => {
+                unavailable_count += 1;
+                warn!(
+                    target: MARKET_LOG_TARGET,
+                    "missing provider symbol mapping provider=tradingview index_id={} code={}",
+                    definition.id,
+                    definition.code
+                );
+                None
+            }
+        };
+
+        rows.push(index_row_from_snapshot(definition, snapshot));
+    }
+
+    Ok((rows, unavailable_count))
+}
+
 fn fetch_assets_with_provider(
     client: &reqwest::blocking::Client,
     provider: &str,
@@ -822,6 +868,11 @@ fn fetch_asset_snapshot(
                 .ok_or_else(|| format!("Missing Finnhub symbol mapping for {}", definition.code))?;
             fetch_finnhub(client, symbol, asset)
         }
+        "tradingview" => {
+            let symbol = asset_tradingview_symbol(asset, definition.id)
+                .ok_or_else(|| format!("Missing TradingView symbol mapping for {}", definition.code))?;
+            fetch_tradingview_snapshot(asset, definition.id, definition.code, symbol)
+        }
         "alpha-vantage" => match definition.fetch_kind {
             AssetFetchKind::Quote => {
                 let symbol = definition.alpha_symbol.ok_or_else(|| {
@@ -858,6 +909,16 @@ fn fetch_asset_snapshot(
 
     store_cached_snapshot(cache_key, &snapshot);
     Ok(snapshot)
+}
+
+fn fetch_tradingview_snapshot(
+    kind: &str,
+    id: &str,
+    symbol: &str,
+    tradingview_symbol: &str,
+) -> Result<MarketSnapshot, String> {
+    fetch_tradingview_chart_series(kind, id, symbol, Some(tradingview_symbol))
+        .map(market_snapshot_from_chart_series)
 }
 
 fn fetch_index_chart_series(

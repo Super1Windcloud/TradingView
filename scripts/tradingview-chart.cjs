@@ -62,6 +62,7 @@ async function main() {
       id: "",
       symbol: "",
       interval: timeframe,
+      series_type: "candlestick",
       currency: chart.infos.currency_code || chart.infos.currency_id || null,
       source_note: `TradingView chart session (${symbol})`,
       points,
