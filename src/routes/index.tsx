@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { RefreshCw } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { MarketSidebar } from "@/components/markets/sidebar"
 import { MarketTableSkeletonBody } from "@/components/markets/table-skeleton"
 import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Table,
   TableBody,
@@ -35,6 +36,7 @@ const defaultCategory = "all"
 function IndicesPage() {
   const { t, locale } = useI18n()
   const { aggregateProvider } = useMarketProviderStore()
+  const navigate = useNavigate()
   const [selectedCategory, setSelectedCategory] = useState<string>(defaultCategory)
   const [selectedTab, setSelectedTab] = useState("overview")
   const [reloadToken, setReloadToken] = useState(0)
@@ -145,6 +147,16 @@ function IndicesPage() {
   }, [categoryCounts, selectedCategory, t])
   const isInitialLoading = isLoading && rows.length === 0
 
+  function openDetail(itemId: string) {
+    void navigate({
+      to: "/market/$kind/$itemId",
+      params: {
+        kind: "indices",
+        itemId,
+      },
+    })
+  }
+
   return (
     <main className="flex h-full min-h-0 overflow-hidden bg-background text-foreground">
       <MarketSidebar footer={formatAggregateProvider(aggregateProvider, resolvedProvider, t)} />
@@ -222,129 +234,130 @@ function IndicesPage() {
             </div>
           ) : null}
 
-          <div
-            className={cn(
-              "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 pr-1",
-              error ? "mt-4" : "mt-6"
-            )}
-          >
-            <section className="overflow-hidden rounded-xl border border-border/60 bg-background/72 backdrop-blur-xl supports-[backdrop-filter]:bg-background/58">
-              <Table className="min-w-[1180px]">
-                <TableHeader>
-                  <TableRow className="border-border/60 hover:bg-transparent">
-                    <TableHead className="h-auto px-0 py-3 text-xs font-medium text-muted-foreground">
-                      <div className="pl-4">
-                        <div>{t("indicesTableSymbol")}</div>
-                        <div className="mt-1">{categoryCounts[selectedCategory] ?? 0}</div>
-                      </div>
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                      {t("indicesTablePrice")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                      {t("indicesTableChangePct")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                      {t("indicesTableChange")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                      {t("indicesTableHigh")}
-                    </TableHead>
-                    <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                      {t("indicesTableLow")}
-                    </TableHead>
-                    <TableHead className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
-                      {t("indicesTableTechRating")}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                {isInitialLoading ? (
-                  <MarketTableSkeletonBody rowCount={8} />
-                ) : (
-                  <TableBody>
-                    {displayRows.length === 0 ? (
-                      <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableCell
-                          colSpan={7}
-                          className="px-4 py-8 text-center text-sm text-muted-foreground"
-                        >
-                          {t("indicesNoData")}
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      displayRows.map((row) => (
-                        <TableRow
-                          key={row.id}
-                          className="border-border/50 text-[14px] hover:bg-accent/25"
-                        >
-                          <TableCell className="px-0 py-0">
-                            <div className="grid min-h-[44px] grid-cols-[44px_minmax(0,1fr)] items-center gap-0 pl-4">
-                              <IndexBadge symbol={row.symbol} />
-                              <div className="min-w-0 py-3">
-                                <div className="flex items-center gap-3">
-                                  <span className="rounded bg-accent/50 px-2 py-1 text-[12px] leading-none text-foreground">
-                                    {row.symbol}
-                                  </span>
-                                  <span className="truncate text-foreground">{row.name}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="px-3 py-3 text-right text-foreground">
-                            {formatMarketValue(row.price, locale, 2)}
-                            {row.currency ? (
-                              <span className="ml-1 text-[10px] uppercase text-muted-foreground">
-                                {row.currency}
-                              </span>
-                            ) : null}
-                          </TableCell>
+          <ScrollArea className={cn("min-h-0 flex-1", error ? "mt-4" : "mt-6")}>
+            <div className="pb-2 pr-3">
+              <section className="overflow-hidden rounded-xl border border-border/60 bg-background/72 backdrop-blur-xl supports-[backdrop-filter]:bg-background/58">
+                <Table className="min-w-[1180px]">
+                  <TableHeader>
+                    <TableRow className="border-border/60 hover:bg-transparent">
+                      <TableHead className="h-auto px-0 py-3 text-xs font-medium text-muted-foreground">
+                        <div className="pl-4">
+                          <div>{t("indicesTableSymbol")}</div>
+                          <div className="mt-1">{categoryCounts[selectedCategory] ?? 0}</div>
+                        </div>
+                      </TableHead>
+                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                        {t("indicesTablePrice")}
+                      </TableHead>
+                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                        {t("indicesTableChangePct")}
+                      </TableHead>
+                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                        {t("indicesTableChange")}
+                      </TableHead>
+                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                        {t("indicesTableHigh")}
+                      </TableHead>
+                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
+                        {t("indicesTableLow")}
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
+                        {t("indicesTableTechRating")}
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  {isInitialLoading ? (
+                    <MarketTableSkeletonBody rowCount={8} />
+                  ) : (
+                    <TableBody>
+                      {displayRows.length === 0 ? (
+                        <TableRow className="border-border/50 hover:bg-transparent">
                           <TableCell
-                            className={cn(
-                              "px-3 py-3 text-right",
-                              getSignedColorClass(row.change_percent)
-                            )}
+                            colSpan={7}
+                            className="px-4 py-8 text-center text-sm text-muted-foreground"
                           >
-                            {formatPercent(row.change_percent, locale)}
-                          </TableCell>
-                          <TableCell
-                            className={cn("px-3 py-3 text-right", getSignedColorClass(row.change))}
-                          >
-                            {formatSignedValue(row.change, locale, 2)}
-                            {row.currency ? (
-                              <span className="ml-1 text-[10px] uppercase opacity-80">
-                                {row.currency}
-                              </span>
-                            ) : null}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 text-right text-foreground">
-                            {formatMarketValue(row.high, locale, 2)}
-                          </TableCell>
-                          <TableCell className="px-3 py-3 text-right text-foreground">
-                            {formatMarketValue(row.low, locale, 2)}
-                          </TableCell>
-                          <TableCell className="px-4 py-3 text-right">
-                            <span
-                              className={cn("text-[14px]", getRatingClass(row.technical_rating))}
-                            >
-                              {row.technical_rating}
-                            </span>
+                            {t("indicesNoData")}
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                )}
-              </Table>
-            </section>
+                      ) : (
+                        displayRows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            className="cursor-pointer border-border/50 text-[14px] hover:bg-accent/25"
+                            onClick={() => openDetail(row.id)}
+                          >
+                            <TableCell className="px-0 py-0">
+                              <div className="grid min-h-[44px] grid-cols-[44px_minmax(0,1fr)] items-center gap-0 pl-4">
+                                <IndexBadge symbol={row.symbol} />
+                                <div className="min-w-0 py-3">
+                                  <div className="flex items-center gap-3">
+                                    <span className="rounded bg-accent/50 px-2 py-1 text-[12px] leading-none text-foreground">
+                                      {row.symbol}
+                                    </span>
+                                    <span className="truncate text-foreground">{row.name}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-3 py-3 text-right text-foreground">
+                              {formatMarketValue(row.price, locale, 2)}
+                              {row.currency ? (
+                                <span className="ml-1 text-[10px] uppercase text-muted-foreground">
+                                  {row.currency}
+                                </span>
+                              ) : null}
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "px-3 py-3 text-right",
+                                getSignedColorClass(row.change_percent)
+                              )}
+                            >
+                              {formatPercent(row.change_percent, locale)}
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "px-3 py-3 text-right",
+                                getSignedColorClass(row.change)
+                              )}
+                            >
+                              {formatSignedValue(row.change, locale, 2)}
+                              {row.currency ? (
+                                <span className="ml-1 text-[10px] uppercase opacity-80">
+                                  {row.currency}
+                                </span>
+                              ) : null}
+                            </TableCell>
+                            <TableCell className="px-3 py-3 text-right text-foreground">
+                              {formatMarketValue(row.high, locale, 2)}
+                            </TableCell>
+                            <TableCell className="px-3 py-3 text-right text-foreground">
+                              {formatMarketValue(row.low, locale, 2)}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-right">
+                              <span
+                                className={cn("text-[14px]", getRatingClass(row.technical_rating))}
+                              >
+                                {row.technical_rating}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  )}
+                </Table>
+              </section>
 
-            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-              <div>{countLabel}</div>
-              <div className="text-right">
-                <div>{sourceNote || t("indicesPreviewSource")}</div>
-                {updatedAt ? <div className="mt-1">{updatedAt}</div> : null}
+              <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                <div>{countLabel}</div>
+                <div className="text-right">
+                  <div>{sourceNote || t("indicesPreviewSource")}</div>
+                  {updatedAt ? <div className="mt-1">{updatedAt}</div> : null}
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
         </div>
       </section>
     </main>

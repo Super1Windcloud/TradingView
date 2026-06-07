@@ -18,6 +18,7 @@ import { Route as CustomRouteImport } from './routes/custom'
 import { Route as CryptoRouteImport } from './routes/crypto'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as MarketKindItemIdRouteImport } from './routes/market.$kind.$itemId'
 
 const StocksRoute = StocksRouteImport.update({
   id: '/stocks',
@@ -64,6 +65,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketKindItemIdRoute = MarketKindItemIdRouteImport.update({
+  id: '/market/$kind/$itemId',
+  path: '/market/$kind/$itemId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/stocks': typeof StocksRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/market/$kind/$itemId': typeof MarketKindItemIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/stocks': typeof StocksRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/market/$kind/$itemId': typeof MarketKindItemIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/stocks': typeof StocksRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/market/$kind/$itemId': typeof MarketKindItemIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/stocks'
     | '/dashboard/'
+    | '/market/$kind/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/stocks'
     | '/dashboard'
+    | '/market/$kind/$itemId'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/stocks'
     | '/dashboard/'
+    | '/market/$kind/$itemId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +157,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   StocksRoute: typeof StocksRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  MarketKindItemIdRoute: typeof MarketKindItemIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/market/$kind/$itemId': {
+      id: '/market/$kind/$itemId'
+      path: '/market/$kind/$itemId'
+      fullPath: '/market/$kind/$itemId'
+      preLoaderRoute: typeof MarketKindItemIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -225,6 +245,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   StocksRoute: StocksRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  MarketKindItemIdRoute: MarketKindItemIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

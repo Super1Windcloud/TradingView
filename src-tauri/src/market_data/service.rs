@@ -1,13 +1,16 @@
 use super::asset_catalog::{
     AssetDefinition, AssetFetchKind, category_counts as asset_category_counts,
-    definitions_for_asset, supported_assets,
+    definition_by_id as asset_definition_by_id, definitions_for_asset, supported_assets,
+    tradingview_symbol as asset_tradingview_symbol,
 };
 use super::catalog::{
-    INDEX_CATEGORY_IDS, IndexDefinition, category_counts, definitions_for_category, finnhub_symbol,
+    INDEX_CATEGORY_IDS, IndexDefinition, category_counts,
+    definition_by_id as index_definition_by_id, definitions_for_category, finnhub_symbol,
+    tradingview_symbol as index_tradingview_symbol,
 };
 use super::models::{
     AssetOverviewResponse, AssetOverviewRow, FinnhubQuote, IndexOverviewRow,
-    IndicesOverviewResponse, MarketSnapshot, MarketViewTab,
+    IndicesOverviewResponse, MarketItemDetailResponse, MarketSnapshot, MarketViewTab,
 };
 use log::{debug, error, info, warn};
 use serde_json::{Map, Value};
@@ -199,6 +202,53 @@ pub(crate) fn get_asset_overview(
         response.asset,
         response.rows.len(),
         response.updated_at
+    );
+
+    Ok(response)
+}
+
+#[tauri::command]
+pub(crate) fn get_market_item_detail(
+    kind: String,
+    item_id: String,
+    preferred_provider: Option<String>,
+) -> Result<MarketItemDetailResponse, String> {
+    load_env();
+    let selected_kind = kind.trim().to_ascii_lowercase();
+    let client = build_http_client()?;
+
+    info!(
+        target: MARKET_LOG_TARGET,
+        "get_market_item_detail start kind={} item_id={} preferred_provider={:?}",
+        selected_kind,
+        item_id,
+        preferred_provider
+    );
+
+    let response = if selected_kind == "indices" {
+        let definition = index_definition_by_id(&item_id)
+            .ok_or_else(|| format!("Unknown index detail item id: {item_id}"))?;
+        let provider = resolve_indices_provider(preferred_provider.as_deref())?;
+        let snapshot = fetch_index_snapshot(&client, definition)?;
+
+        market_detail_from_index(definition, snapshot, provider)
+    } else {
+        let asset = normalize_asset(&selected_kind)?;
+        let definition = asset_definition_by_id(&asset, &item_id)
+            .ok_or_else(|| format!("Unknown market detail item id: {item_id}"))?;
+        let provider = resolve_asset_provider(&asset, preferred_provider.as_deref())?;
+        let snapshot = fetch_asset_snapshot(&client, provider, &asset, definition)?;
+
+        market_detail_from_asset(&asset, definition, snapshot, provider)
+    }?;
+
+    info!(
+        target: MARKET_LOG_TARGET,
+        "get_market_item_detail success kind={} item_id={} provider={} tradingview_symbol={:?}",
+        response.kind,
+        response.id,
+        response.provider,
+        response.tradingview_symbol
     );
 
     Ok(response)
@@ -791,6 +841,37 @@ fn asset_row_from_snapshot(
     }
 }
 
+fn market_detail_from_asset(
+    asset: &str,
+    definition: &AssetDefinition,
+    snapshot: MarketSnapshot,
+    provider: &str,
+) -> Result<MarketItemDetailResponse, String> {
+    Ok(MarketItemDetailResponse {
+        provider: provider.to_string(),
+        kind: asset.to_string(),
+        id: definition.id.to_string(),
+        symbol: definition.code.to_string(),
+        name: definition.name.to_string(),
+        region: definition.region.to_string(),
+        currency: snapshot
+            .currency
+            .clone()
+            .or_else(|| Some(definition.currency.to_string())),
+        price: snapshot.price,
+        change: snapshot.change,
+        change_percent: snapshot.change_percent,
+        open: snapshot.open,
+        high: snapshot.high,
+        low: snapshot.low,
+        previous_close: snapshot.previous_close,
+        as_of: snapshot.as_of.clone(),
+        source_note: snapshot.source_note.clone(),
+        technical_rating: technical_rating(snapshot.change_percent),
+        tradingview_symbol: asset_tradingview_symbol(asset, definition.id).map(str::to_string),
+    })
+}
+
 fn index_row_from_snapshot(
     definition: &IndexDefinition,
     snapshot: Option<MarketSnapshot>,
@@ -825,6 +906,46 @@ fn index_row_from_snapshot(
         as_of: snapshot.and_then(|snapshot| snapshot.as_of),
         technical_rating,
     }
+}
+
+fn market_detail_from_index(
+    definition: &IndexDefinition,
+    snapshot: MarketSnapshot,
+    provider: &str,
+) -> Result<MarketItemDetailResponse, String> {
+    Ok(MarketItemDetailResponse {
+        provider: provider.to_string(),
+        kind: "indices".to_string(),
+        id: definition.id.to_string(),
+        symbol: definition.code.to_string(),
+        name: definition.name.to_string(),
+        region: definition.region.to_string(),
+        currency: snapshot
+            .currency
+            .clone()
+            .or_else(|| Some(definition.currency.to_string())),
+        price: snapshot.price,
+        change: snapshot.change,
+        change_percent: snapshot.change_percent,
+        open: snapshot.open,
+        high: snapshot.high,
+        low: snapshot.low,
+        previous_close: snapshot.previous_close,
+        as_of: snapshot.as_of.clone(),
+        source_note: snapshot.source_note.clone(),
+        technical_rating: technical_rating(snapshot.change_percent),
+        tradingview_symbol: index_tradingview_symbol(definition.id).map(str::to_string),
+    })
+}
+
+fn fetch_index_snapshot(
+    client: &reqwest::blocking::Client,
+    definition: &IndexDefinition,
+) -> Result<MarketSnapshot, String> {
+    let symbol = finnhub_symbol(definition)
+        .ok_or_else(|| format!("Missing Finnhub symbol mapping for {}", definition.code))?;
+
+    fetch_finnhub(client, symbol, "index")
 }
 
 fn technical_rating(change_percent: Option<f64>) -> String {

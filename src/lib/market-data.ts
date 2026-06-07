@@ -487,6 +487,29 @@ export interface AssetOverviewResponse {
   rows: AssetOverviewRow[]
 }
 
+export type MarketKind = "indices" | MarketAsset
+
+export interface MarketItemDetailResponse {
+  provider: MarketProvider
+  kind: MarketKind
+  id: string
+  symbol: string
+  name: string
+  region: string
+  currency: string | null
+  price: number | null
+  change: number | null
+  change_percent: number | null
+  open: number | null
+  high: number | null
+  low: number | null
+  previous_close: number | null
+  as_of: string | null
+  source_note: string
+  technical_rating: string
+  tradingview_symbol: string | null
+}
+
 export interface AssetCategoryMeta {
   id: string
   i18nKey: string
@@ -955,6 +978,22 @@ export async function getAssetOverview(asset: MarketAsset, preferredProvider?: M
   })
 }
 
+export async function getMarketItemDetail(
+  kind: MarketKind,
+  itemId: string,
+  preferredProvider?: MarketProvider
+) {
+  if (!isTauriRuntime()) {
+    return buildPreviewMarketItemDetail(kind, itemId)
+  }
+
+  return invoke<MarketItemDetailResponse>("get_market_item_detail", {
+    kind,
+    itemId,
+    preferredProvider,
+  })
+}
+
 function buildPreviewAssetOverview(asset: MarketAsset): AssetOverviewResponse {
   const seeds = previewAssetSeeds[asset]
   const rows = seeds.map((seed, index) => buildPreviewAssetRow(asset, seed, index))
@@ -972,6 +1011,66 @@ function buildPreviewAssetOverview(asset: MarketAsset): AssetOverviewResponse {
     categories,
     tabs: defaultPreviewTabs,
     rows,
+  }
+}
+
+function buildPreviewMarketItemDetail(kind: MarketKind, itemId: string): MarketItemDetailResponse {
+  if (kind === "indices") {
+    const row = previewRows.find((item) => item.id === itemId)
+
+    if (!row) {
+      throw new Error(`Unknown preview market detail item: ${kind}/${itemId}`)
+    }
+
+    return {
+      provider: "finnhub",
+      kind,
+      id: row.id,
+      symbol: row.symbol,
+      name: row.name,
+      region: row.region,
+      currency: row.currency,
+      price: row.price,
+      change: row.change,
+      change_percent: row.change_percent,
+      open: row.open,
+      high: row.high,
+      low: row.low,
+      previous_close: row.previous_close,
+      as_of: row.as_of,
+      source_note: "Preview data for browser layout verification",
+      technical_rating: row.technical_rating,
+      tradingview_symbol: previewTradingViewSymbol(kind, itemId),
+    }
+  }
+
+  const seed = previewAssetSeeds[kind].find((item) => item.id === itemId)
+
+  if (!seed) {
+    throw new Error(`Unknown preview market detail item: ${kind}/${itemId}`)
+  }
+
+  const row = buildPreviewAssetRow(kind, seed, 0)
+
+  return {
+    provider: "alpha-vantage",
+    kind,
+    id: row.id,
+    symbol: row.symbol,
+    name: row.name,
+    region: row.region,
+    currency: row.currency,
+    price: row.price,
+    change: row.change,
+    change_percent: row.change_percent,
+    open: row.open,
+    high: row.high,
+    low: row.low,
+    previous_close: row.previous_close,
+    as_of: row.as_of,
+    source_note: "Preview data for browser layout verification",
+    technical_rating: row.technical_rating,
+    tradingview_symbol: previewTradingViewSymbol(kind, itemId),
   }
 }
 
@@ -1034,4 +1133,157 @@ function previewBaseValue(asset: MarketAsset, hash: number) {
 
 function roundMetric(value: number, digits: number) {
   return Number(value.toFixed(digits))
+}
+
+function previewTradingViewSymbol(kind: MarketKind, itemId: string) {
+  switch (`${kind}:${itemId}`) {
+    case "indices:spx":
+      return "FRED:SP500"
+    case "indices:ixic":
+      return "NASDAQ:IXIC"
+    case "indices:dji":
+      return "BLACKBULL:US30"
+    case "indices:vix":
+      return "CBOE:VIX"
+    case "indices:tsx":
+      return "TVC:TSX"
+    case "indices:ukx":
+      return "TVC:UKX"
+    case "indices:dax":
+      return "XETR:DAX"
+    case "indices:px1":
+      return "EURONEXT:PX1"
+    case "indices:ftmib":
+      return "MIL:FTSEMIB"
+    case "indices:n225":
+      return "TVC:NI225"
+    case "indices:kospi":
+      return "KRX:KOSPI"
+    case "indices:hsi":
+      return "HSI:HSI"
+    case "indices:xjo":
+      return "ASX:XJO"
+    case "indices:nz50":
+      return "TVC:NZ50G"
+    case "indices:ta35":
+      return "TASE:TA35"
+    case "indices:jalsh":
+      return "JSE:J203"
+    case "indices:dxy":
+      return "TVC:DXY"
+    case "indices:xlb":
+      return "AMEX:XLB"
+    case "indices:xle":
+      return "AMEX:XLE"
+    case "indices:xlf":
+      return "AMEX:XLF"
+    case "indices:xlk":
+      return "AMEX:XLK"
+    case "indices:xlv":
+      return "AMEX:XLV"
+    case "indices:xli":
+      return "AMEX:XLI"
+    case "indices:xlp":
+      return "AMEX:XLP"
+    case "indices:xly":
+      return "AMEX:XLY"
+    case "indices:xlu":
+      return "AMEX:XLU"
+    case "indices:xlc":
+      return "AMEX:XLC"
+    case "indices:xlre":
+      return "AMEX:XLRE"
+    case "stocks:aapl":
+      return "NASDAQ:AAPL"
+    case "stocks:msft":
+      return "NASDAQ:MSFT"
+    case "stocks:nvda":
+      return "NASDAQ:NVDA"
+    case "stocks:amzn":
+      return "NASDAQ:AMZN"
+    case "stocks:googl":
+      return "NASDAQ:GOOGL"
+    case "stocks:meta":
+      return "NASDAQ:META"
+    case "stocks:amd":
+      return "NASDAQ:AMD"
+    case "stocks:tsm":
+      return "NYSE:TSM"
+    case "stocks:avgo":
+      return "NASDAQ:AVGO"
+    case "stocks:baba":
+      return "NYSE:BABA"
+    case "stocks:pdd":
+      return "NASDAQ:PDD"
+    case "stocks:bidu":
+      return "NASDAQ:BIDU"
+    case "etf:spy":
+      return "AMEX:SPY"
+    case "etf:qqq":
+      return "NASDAQ:QQQ"
+    case "etf:vti":
+      return "AMEX:VTI"
+    case "etf:xlk":
+      return "AMEX:XLK"
+    case "etf:xlf":
+      return "AMEX:XLF"
+    case "etf:xle":
+      return "AMEX:XLE"
+    case "etf:tlt":
+      return "NASDAQ:TLT"
+    case "etf:lqd":
+      return "AMEX:LQD"
+    case "etf:hyg":
+      return "AMEX:HYG"
+    case "etf:eem":
+      return "AMEX:EEM"
+    case "etf:smh":
+      return "NASDAQ:SMH"
+    case "etf:gld":
+      return "AMEX:GLD"
+    case "crypto:btcusd":
+      return "BINANCE:BTCUSDT"
+    case "crypto:ethusd":
+      return "BINANCE:ETHUSDT"
+    case "crypto:xrpusd":
+      return "BINANCE:XRPUSDT"
+    case "crypto:solusd":
+      return "BINANCE:SOLUSDT"
+    case "crypto:bnbusd":
+      return "BINANCE:BNBUSDT"
+    case "crypto:adausd":
+      return "BINANCE:ADAUSDT"
+    case "crypto:dogeusd":
+      return "BINANCE:DOGEUSDT"
+    case "crypto:ltcusd":
+      return "BINANCE:LTCUSDT"
+    case "crypto:bchusd":
+      return "BINANCE:BCHUSDT"
+    case "crypto:linkusd":
+      return "BINANCE:LINKUSDT"
+    case "crypto:avaxusd":
+      return "BINANCE:AVAXUSDT"
+    case "crypto:dotusd":
+      return "BINANCE:DOTUSDT"
+    case "futures:wti":
+      return "TVC:USOIL"
+    case "futures:brent":
+      return "TVC:UKOIL"
+    case "futures:natgas":
+      return "NYMEX:NG1!"
+    case "futures:copper":
+      return "COMEX:HG1!"
+    case "futures:aluminum":
+      return "LME:AH1!"
+    case "futures:wheat":
+      return "CBOT:ZW1!"
+    case "futures:corn":
+      return "CBOT:ZC1!"
+    case "futures:cotton":
+      return "ICEUS:CT1!"
+    case "futures:coffee":
+      return "ICEUS:KC1!"
+    default:
+      return null
+  }
 }

@@ -669,6 +669,12 @@ pub(crate) fn definitions_for_asset(asset: &str) -> Option<&'static [AssetDefini
     }
 }
 
+pub(crate) fn definition_by_id(asset: &str, id: &str) -> Option<&'static AssetDefinition> {
+    definitions_for_asset(asset)?
+        .iter()
+        .find(|definition| definition.id == id)
+}
+
 pub(crate) fn category_counts(asset: &str) -> Vec<AssetCategoryCount> {
     let Some(categories) = asset_category_items(asset) else {
         return Vec::new();
@@ -688,4 +694,55 @@ pub(crate) fn category_counts(asset: &str) -> Vec<AssetCategoryCount> {
                 .count(),
         })
         .collect()
+}
+
+pub(crate) fn tradingview_symbol(asset: &str, id: &str) -> Option<&'static str> {
+    match (asset, id) {
+        ("stocks", "aapl") => Some("NASDAQ:AAPL"),
+        ("stocks", "msft") => Some("NASDAQ:MSFT"),
+        ("stocks", "nvda") => Some("NASDAQ:NVDA"),
+        ("stocks", "amzn") => Some("NASDAQ:AMZN"),
+        ("stocks", "googl") => Some("NASDAQ:GOOGL"),
+        ("stocks", "meta") => Some("NASDAQ:META"),
+        ("stocks", "amd") => Some("NASDAQ:AMD"),
+        ("stocks", "tsm") => Some("NYSE:TSM"),
+        ("stocks", "avgo") => Some("NASDAQ:AVGO"),
+        ("stocks", "baba") => Some("NYSE:BABA"),
+        ("stocks", "pdd") => Some("NASDAQ:PDD"),
+        ("stocks", "bidu") => Some("NASDAQ:BIDU"),
+        ("etf", "spy") => Some("AMEX:SPY"),
+        ("etf", "qqq") => Some("NASDAQ:QQQ"),
+        ("etf", "vti") => Some("AMEX:VTI"),
+        ("etf", "xlk") => Some("AMEX:XLK"),
+        ("etf", "xlf") => Some("AMEX:XLF"),
+        ("etf", "xle") => Some("AMEX:XLE"),
+        ("etf", "tlt") => Some("NASDAQ:TLT"),
+        ("etf", "lqd") => Some("AMEX:LQD"),
+        ("etf", "hyg") => Some("AMEX:HYG"),
+        ("etf", "eem") => Some("AMEX:EEM"),
+        ("etf", "smh") => Some("NASDAQ:SMH"),
+        ("etf", "gld") => Some("AMEX:GLD"),
+        ("crypto", "btcusd") => Some("BINANCE:BTCUSDT"),
+        ("crypto", "ethusd") => Some("BINANCE:ETHUSDT"),
+        ("crypto", "xrpusd") => Some("BINANCE:XRPUSDT"),
+        ("crypto", "solusd") => Some("BINANCE:SOLUSDT"),
+        ("crypto", "bnbusd") => Some("BINANCE:BNBUSDT"),
+        ("crypto", "adausd") => Some("BINANCE:ADAUSDT"),
+        ("crypto", "dogeusd") => Some("BINANCE:DOGEUSDT"),
+        ("crypto", "ltcusd") => Some("BINANCE:LTCUSDT"),
+        ("crypto", "bchusd") => Some("BINANCE:BCHUSDT"),
+        ("crypto", "linkusd") => Some("BINANCE:LINKUSDT"),
+        ("crypto", "avaxusd") => Some("BINANCE:AVAXUSDT"),
+        ("crypto", "dotusd") => Some("BINANCE:DOTUSDT"),
+        ("futures", "wti") => Some("TVC:USOIL"),
+        ("futures", "brent") => Some("TVC:UKOIL"),
+        ("futures", "natgas") => Some("NYMEX:NG1!"),
+        ("futures", "copper") => Some("COMEX:HG1!"),
+        ("futures", "aluminum") => Some("LME:AH1!"),
+        ("futures", "wheat") => Some("CBOT:ZW1!"),
+        ("futures", "corn") => Some("CBOT:ZC1!"),
+        ("futures", "cotton") => Some("ICEUS:CT1!"),
+        ("futures", "coffee") => Some("ICEUS:KC1!"),
+        _ => None,
+    }
 }

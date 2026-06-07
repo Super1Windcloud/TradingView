@@ -300,6 +300,12 @@ pub(crate) fn definitions_for_category(category: &str) -> Vec<&'static IndexDefi
         .collect()
 }
 
+pub(crate) fn definition_by_id(id: &str) -> Option<&'static IndexDefinition> {
+    INDEX_DEFINITIONS
+        .iter()
+        .find(|definition| definition.id == id)
+}
+
 pub(crate) fn category_counts() -> Vec<IndexCategoryCount> {
     INDEX_CATEGORY_ITEMS
         .iter()
@@ -313,4 +319,38 @@ pub(crate) fn category_counts() -> Vec<IndexCategoryCount> {
 
 pub(crate) fn finnhub_symbol(definition: &IndexDefinition) -> Option<&'static str> {
     definition.finnhub_symbol
+}
+
+pub(crate) fn tradingview_symbol(id: &str) -> Option<&'static str> {
+    match id {
+        "spx" => Some("FRED:SP500"),
+        "ixic" => Some("NASDAQ:IXIC"),
+        "dji" => Some("BLACKBULL:US30"),
+        "vix" => Some("CBOE:VIX"),
+        "tsx" => Some("TVC:TSX"),
+        "ukx" => Some("TVC:UKX"),
+        "dax" => Some("XETR:DAX"),
+        "px1" => Some("EURONEXT:PX1"),
+        "ftmib" => Some("MIL:FTSEMIB"),
+        "n225" => Some("TVC:NI225"),
+        "kospi" => Some("KRX:KOSPI"),
+        "hsi" => Some("HSI:HSI"),
+        "xjo" => Some("ASX:XJO"),
+        "nz50" => Some("TVC:NZ50G"),
+        "ta35" => Some("TASE:TA35"),
+        "jalsh" => Some("JSE:J203"),
+        "dxy" => Some("TVC:DXY"),
+        "xlb" => Some("AMEX:XLB"),
+        "xle" => Some("AMEX:XLE"),
+        "xlf" => Some("AMEX:XLF"),
+        "xlk" => Some("AMEX:XLK"),
+        "xlv" => Some("AMEX:XLV"),
+        "xli" => Some("AMEX:XLI"),
+        "xlp" => Some("AMEX:XLP"),
+        "xly" => Some("AMEX:XLY"),
+        "xlu" => Some("AMEX:XLU"),
+        "xlc" => Some("AMEX:XLC"),
+        "xlre" => Some("AMEX:XLRE"),
+        _ => None,
+    }
 }

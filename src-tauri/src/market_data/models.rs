@@ -97,6 +97,28 @@ pub(crate) struct AssetOverviewResponse {
     pub(crate) rows: Vec<AssetOverviewRow>,
 }
 
+#[derive(Debug, Serialize)]
+pub(crate) struct MarketItemDetailResponse {
+    pub(crate) provider: String,
+    pub(crate) kind: String,
+    pub(crate) id: String,
+    pub(crate) symbol: String,
+    pub(crate) name: String,
+    pub(crate) region: String,
+    pub(crate) currency: Option<String>,
+    pub(crate) price: Option<f64>,
+    pub(crate) change: Option<f64>,
+    pub(crate) change_percent: Option<f64>,
+    pub(crate) open: Option<f64>,
+    pub(crate) high: Option<f64>,
+    pub(crate) low: Option<f64>,
+    pub(crate) previous_close: Option<f64>,
+    pub(crate) as_of: Option<String>,
+    pub(crate) source_note: String,
+    pub(crate) technical_rating: String,
+    pub(crate) tradingview_symbol: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 pub(crate) struct FinnhubQuote {
     pub(crate) c: Option<f64>,
