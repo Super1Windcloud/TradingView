@@ -255,6 +255,7 @@ fn get_asset_overview_sync(
         source_note,
         categories,
         tabs: default_market_tabs(),
+        columns: default_index_columns(),
         rows,
     };
 

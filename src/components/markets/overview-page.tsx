@@ -24,6 +24,7 @@ import {
   type IndexOverviewRow,
   type MarketAsset,
   type MarketProvider,
+  type MarketTableColumn,
   marketAssetConfigs,
   providerLabels,
   resolvePreferredProvider,
@@ -40,6 +41,7 @@ type OverviewCategory = IndexCategoryCount | AssetCategoryCount
 interface OverviewCacheEntry {
   rows: OverviewRow[]
   categories: OverviewCategory[]
+  columns: MarketTableColumn[]
   updatedAt: string | null
   sourceNote: string
   resolvedProvider: MarketProvider | null
@@ -67,6 +69,7 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
   const [reloadToken, setReloadToken] = useState(0)
   const [rows, setRows] = useState<OverviewRow[]>([])
   const [categories, setCategories] = useState<OverviewCategory[]>([])
+  const [columns, setColumns] = useState<MarketTableColumn[]>([])
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [sourceNote, setSourceNote] = useState("")
   const [resolvedProvider, setResolvedProvider] = useState<MarketProvider | null>(null)
@@ -92,6 +95,7 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
       if (cached) {
         setRows(cached.rows)
         setCategories(cached.categories)
+        setColumns(cached.columns)
         setUpdatedAt(cached.updatedAt)
         setSourceNote(cached.sourceNote)
         setResolvedProvider(cached.resolvedProvider)
@@ -129,6 +133,7 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
 
         setRows(nextEntry.rows)
         setCategories(nextEntry.categories)
+        setColumns(nextEntry.columns)
         setUpdatedAt(nextEntry.updatedAt)
         setSourceNote(nextEntry.sourceNote)
         setResolvedProvider(nextEntry.resolvedProvider)
@@ -146,6 +151,7 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
 
         setRows([])
         setCategories([])
+        setColumns([])
         setUpdatedAt(null)
         setSourceNote("")
         setResolvedProvider(null)
@@ -298,24 +304,19 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
                           <div className="mt-1">{filteredRows.length}</div>
                         </div>
                       </TableHead>
-                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                        {t("indicesTablePrice")}
-                      </TableHead>
-                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                        {t("indicesTableChangePct")}
-                      </TableHead>
-                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                        {t("indicesTableChange")}
-                      </TableHead>
-                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                        {t("indicesTableHigh")}
-                      </TableHead>
-                      <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
-                        {t("indicesTableLow")}
-                      </TableHead>
-                      <TableHead className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
-                        {t("indicesTableTechRating")}
-                      </TableHead>
+                      {columns
+                        .filter((column) => column.id !== "symbol")
+                        .map((column) => (
+                          <TableHead
+                            key={column.id}
+                            className={cn(
+                              "px-3 py-3 text-xs font-medium text-muted-foreground",
+                              column.align === "right" ? "text-right" : "text-left"
+                            )}
+                          >
+                            {t(column.label_key as never)}
+                          </TableHead>
+                        ))}
                     </TableRow>
                   </TableHeader>
                   {isInitialLoading ? (
@@ -325,7 +326,7 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
                       {pagedRows.length === 0 ? (
                         <TableRow className="border-border/50 hover:bg-transparent">
                           <TableCell
-                            colSpan={7}
+                            colSpan={Math.max(columns.length, 1)}
                             className="px-4 py-8 text-center text-sm text-muted-foreground"
                           >
                             {t("marketsNoData")}
@@ -338,61 +339,7 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
                             className="cursor-pointer border-border/50 text-[14px] hover:bg-accent/25"
                             onClick={() => openDetail(row.id)}
                           >
-                            <TableCell className="px-0 py-0">
-                              <div className="grid min-h-[44px] grid-cols-[44px_minmax(0,1fr)] items-center gap-0 pl-4">
-                                <AssetBadge symbol={row.symbol} />
-                                <div className="min-w-0 py-3">
-                                  <div className="flex items-center gap-3">
-                                    <span className="rounded bg-accent/50 px-2 py-1 text-[12px] leading-none text-foreground">
-                                      {row.symbol}
-                                    </span>
-                                    <span className="truncate text-foreground">{row.name}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="px-3 py-3 text-right text-foreground">
-                              {formatMarketValue(row.price, locale, 2)}
-                              {row.currency ? (
-                                <span className="ml-1 text-[10px] uppercase text-muted-foreground">
-                                  {row.currency}
-                                </span>
-                              ) : null}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "px-3 py-3 text-right",
-                                getSignedColorClass(row.change_percent)
-                              )}
-                            >
-                              {formatPercent(row.change_percent, locale)}
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "px-3 py-3 text-right",
-                                getSignedColorClass(row.change)
-                              )}
-                            >
-                              {formatSignedValue(row.change, locale, 2)}
-                              {row.currency ? (
-                                <span className="ml-1 text-[10px] uppercase opacity-80">
-                                  {row.currency}
-                                </span>
-                              ) : null}
-                            </TableCell>
-                            <TableCell className="px-3 py-3 text-right text-foreground">
-                              {formatMarketValue(row.high, locale, 2)}
-                            </TableCell>
-                            <TableCell className="px-3 py-3 text-right text-foreground">
-                              {formatMarketValue(row.low, locale, 2)}
-                            </TableCell>
-                            <TableCell className="px-4 py-3 text-right">
-                              <span
-                                className={cn("text-[14px]", getRatingClass(row.technical_rating))}
-                              >
-                                {row.technical_rating}
-                              </span>
-                            </TableCell>
+                            {columns.map((column) => renderOverviewCell(row, column, locale))}
                           </TableRow>
                         ))
                       )}
@@ -464,6 +411,94 @@ function AssetBadge({ symbol }: { symbol: string }) {
         {symbol.slice(0, 2)}
       </div>
     </div>
+  )
+}
+
+function renderOverviewCell(row: OverviewRow, column: MarketTableColumn, locale: string) {
+  if (column.id === "symbol") {
+    return (
+      <TableCell key={column.id} className="px-0 py-0">
+        <div className="grid min-h-[44px] grid-cols-[44px_minmax(0,1fr)] items-center gap-0 pl-4">
+          <AssetBadge symbol={row.symbol} />
+          <div className="min-w-0 py-3">
+            <div className="flex items-center gap-3">
+              <span className="rounded bg-accent/50 px-2 py-1 text-[12px] leading-none text-foreground">
+                {row.symbol}
+              </span>
+              <span className="truncate text-foreground">{row.name}</span>
+            </div>
+          </div>
+        </div>
+      </TableCell>
+    )
+  }
+
+  if (column.id === "price") {
+    return (
+      <TableCell key={column.id} className="px-3 py-3 text-right text-foreground">
+        {formatMarketValue(row.price, locale, 2)}
+        {row.currency ? (
+          <span className="ml-1 text-[10px] uppercase text-muted-foreground">{row.currency}</span>
+        ) : null}
+      </TableCell>
+    )
+  }
+
+  if (column.id === "change_percent") {
+    return (
+      <TableCell
+        key={column.id}
+        className={cn("px-3 py-3 text-right", getSignedColorClass(row.change_percent))}
+      >
+        {formatPercent(row.change_percent, locale)}
+      </TableCell>
+    )
+  }
+
+  if (column.id === "change") {
+    return (
+      <TableCell
+        key={column.id}
+        className={cn("px-3 py-3 text-right", getSignedColorClass(row.change))}
+      >
+        {formatSignedValue(row.change, locale, 2)}
+        {row.currency ? (
+          <span className="ml-1 text-[10px] uppercase opacity-80">{row.currency}</span>
+        ) : null}
+      </TableCell>
+    )
+  }
+
+  if (column.id === "high") {
+    return (
+      <TableCell key={column.id} className="px-3 py-3 text-right text-foreground">
+        {formatMarketValue(row.high, locale, 2)}
+      </TableCell>
+    )
+  }
+
+  if (column.id === "low") {
+    return (
+      <TableCell key={column.id} className="px-3 py-3 text-right text-foreground">
+        {formatMarketValue(row.low, locale, 2)}
+      </TableCell>
+    )
+  }
+
+  if (column.id === "technical_rating") {
+    return (
+      <TableCell key={column.id} className="px-4 py-3 text-right">
+        <span className={cn("text-[14px]", getRatingClass(row.technical_rating))}>
+          {row.technical_rating}
+        </span>
+      </TableCell>
+    )
+  }
+
+  return (
+    <TableCell key={column.id} className="px-3 py-3 text-muted-foreground">
+      --
+    </TableCell>
   )
 }
 
@@ -587,6 +622,7 @@ async function createOverviewRequest(
       const nextEntry: OverviewCacheEntry = {
         rows: overview.rows,
         categories: overview.categories,
+        columns: overview.columns,
         updatedAt: overview.updated_at,
         sourceNote: overview.source_note,
         resolvedProvider: overview.provider,
@@ -601,6 +637,7 @@ async function createOverviewRequest(
     const nextEntry: OverviewCacheEntry = {
       rows: overview.rows,
       categories: overview.categories,
+      columns: overview.columns,
       updatedAt: overview.updated_at,
       sourceNote: overview.source_note,
       resolvedProvider: overview.provider,

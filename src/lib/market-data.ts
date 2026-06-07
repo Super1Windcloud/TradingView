@@ -507,6 +507,7 @@ export interface AssetOverviewResponse {
   source_note: string
   categories: AssetCategoryCount[]
   tabs: MarketViewTab[]
+  columns: MarketTableColumn[]
   rows: AssetOverviewRow[]
 }
 
@@ -1781,6 +1782,7 @@ function buildPreviewAssetOverview(asset: MarketAsset, category?: string): Asset
     source_note: "Preview data for browser layout verification",
     categories,
     tabs: defaultPreviewTabs,
+    columns: defaultPreviewIndexColumns,
     rows,
   }
 }

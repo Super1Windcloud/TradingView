@@ -105,6 +105,7 @@ pub(crate) struct AssetOverviewResponse {
     pub(crate) source_note: String,
     pub(crate) categories: Vec<AssetCategoryCount>,
     pub(crate) tabs: Vec<MarketViewTab>,
+    pub(crate) columns: Vec<MarketTableColumn>,
     pub(crate) rows: Vec<AssetOverviewRow>,
 }
 
