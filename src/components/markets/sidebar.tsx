@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router"
-import type { ReactNode } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { type ReactNode, useEffect, useState } from "react"
 
 import { useI18n } from "@/lib/i18n"
 import { marketNavigationItems } from "@/lib/market-data"
@@ -10,51 +11,115 @@ interface MarketSidebarProps {
   footer?: ReactNode
 }
 
+const sidebarStorageKey = "market-sidebar-collapsed"
+
 const baseItemClass =
   "flex h-9 w-full items-center rounded-md px-3 text-left text-sm transition-colors"
 
+function readCollapsedState() {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  return window.localStorage.getItem(sidebarStorageKey) === "1"
+}
+
+function getCompactLabel(value: string) {
+  const label = value.trim()
+  return label.slice(0, 1) || "•"
+}
+
 export function MarketSidebar({ currentView, footer }: MarketSidebarProps) {
   const { t } = useI18n()
+  const [isCollapsed, setIsCollapsed] = useState(readCollapsedState)
+
+  useEffect(() => {
+    window.localStorage.setItem(sidebarStorageKey, isCollapsed ? "1" : "0")
+  }, [isCollapsed])
 
   return (
-    <aside className="hidden w-[248px] shrink-0 border-r border-[#2b2e33] bg-[#17191b] lg:flex lg:flex-col">
-      <div className="flex h-12 items-center border-b border-[#2b2e33] px-4">
-        <span className="text-sm font-semibold text-[#f3f4f6]">AstraQuant</span>
+    <aside
+      className={cn(
+        "sticky top-0 hidden self-start overflow-hidden border-r border-border/60 bg-background/78 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 transition-[width] duration-150 ease-out lg:flex lg:flex-col",
+        "h-[calc(100vh-2.5rem)]",
+        isCollapsed ? "w-[72px]" : "w-[248px]"
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-12 items-center border-b border-border/60",
+          isCollapsed ? "justify-between px-2" : "justify-between px-4"
+        )}
+      >
+        <span className="text-sm font-semibold text-foreground">
+          {isCollapsed ? "AQ" : "AstraQuant"}
+        </span>
+        <button
+          type="button"
+          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          onClick={() => setIsCollapsed((value) => !value)}
+          aria-label={t(isCollapsed ? "sidebarToggleOpen" : "sidebarToggleClose")}
+          title={t(isCollapsed ? "sidebarToggleOpen" : "sidebarToggleClose")}
+        >
+          {isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+        </button>
       </div>
 
-      <div className="flex-1 px-3 py-4">
-        <div className="px-2 text-[11px] tracking-wide text-[#7f878f] uppercase">Markets</div>
-        <div className="mt-2 space-y-1">
-          {marketNavigationItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              activeOptions={{ exact: true }}
-              className={baseItemClass}
-              activeProps={{
-                className: cn(baseItemClass, "bg-[#25292d] text-[#f3f4f6]"),
-              }}
-              inactiveProps={{
-                className: cn(
-                  baseItemClass,
-                  "text-[#a7afb7] hover:bg-[#212428] hover:text-[#eceff2]"
-                ),
-              }}
-            >
-              {t(item.i18nKey as never)}
-            </Link>
-          ))}
+      <div className={cn("min-h-0 flex-1 overflow-y-auto py-4", isCollapsed ? "px-2" : "px-3")}>
+        {isCollapsed ? null : (
+          <div className="px-2 text-[11px] tracking-wide text-muted-foreground uppercase">
+            Markets
+          </div>
+        )}
+        <div className={cn(isCollapsed ? "space-y-2" : "mt-2 space-y-1")}>
+          {marketNavigationItems.map((item) => {
+            const label = t(item.i18nKey as never)
+            const itemClassName = cn(
+              baseItemClass,
+              isCollapsed ? "justify-center px-0 text-[13px] font-medium" : ""
+            )
+
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                activeOptions={{ exact: true }}
+                className={itemClassName}
+                activeProps={{
+                  className: cn(itemClassName, "bg-accent/50 text-foreground"),
+                }}
+                inactiveProps={{
+                  className: cn(
+                    itemClassName,
+                    "text-muted-foreground hover:bg-accent/35 hover:text-foreground"
+                  ),
+                }}
+                aria-label={label}
+                title={label}
+              >
+                {isCollapsed ? getCompactLabel(label) : label}
+              </Link>
+            )
+          })}
         </div>
 
-        <div className="mt-6 px-2 text-[11px] tracking-wide text-[#7f878f] uppercase">
-          Current view
-        </div>
-        <div className="mt-2 rounded-md border border-[#2b2f34] bg-[#1d2023] px-3 py-3 text-sm text-[#c7cdd4]">
-          {currentView}
-        </div>
+        {isCollapsed ? null : (
+          <>
+            <div className="mt-6 px-2 text-[11px] tracking-wide text-muted-foreground uppercase">
+              {t("sidebarCurrentView")}
+            </div>
+            <div className="mt-2 rounded-md border border-border/60 bg-background/70 px-3 py-3 text-sm text-foreground/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/55">
+              {currentView}
+            </div>
+          </>
+        )}
       </div>
 
-      <div className="border-t border-[#2b2e33] px-4 py-3 text-xs text-[#7f878f]">{footer}</div>
+      {isCollapsed ? null : (
+        <div className="border-t border-border/60 px-4 py-3 text-xs text-muted-foreground">
+          {footer}
+        </div>
+      )}
     </aside>
   )
 }

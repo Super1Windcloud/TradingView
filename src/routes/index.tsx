@@ -133,13 +133,13 @@ function IndicesPage() {
   const isInitialLoading = isLoading && rows.length === 0
 
   return (
-    <main className="flex min-h-full bg-[#16181a] text-[#f2f2f2]">
+    <main className="flex min-h-full bg-background/24 text-foreground">
       <MarketSidebar
         currentView={t("assetIndex")}
         footer={formatAggregateProvider(aggregateProvider, resolvedProvider, t)}
       />
 
-      <section className="min-w-0 flex-1 bg-[#1b1d1f]">
+      <section className="min-w-0 flex-1 bg-background/12">
         <div className="mx-auto flex w-full max-w-[1600px] flex-col px-5 pt-6 pb-8 sm:px-8">
           <div className="flex flex-wrap gap-2">
             {indexCategories.map((category) => {
@@ -151,10 +151,10 @@ function IndicesPage() {
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
                   className={cn(
-                    "inline-flex h-8 items-center rounded-full border px-3 text-[13px] transition-colors",
+                    "inline-flex h-8 items-center rounded-full border px-3 text-[13px] backdrop-blur-md transition-colors",
                     isActive
-                      ? "border-[#6b5a42] bg-[#2a2d31] text-[#f5e5cf]"
-                      : "border-[#34373b] bg-[#202326] text-[#d5d7da] hover:bg-[#26292d]"
+                      ? "border-primary/35 bg-background/72 text-foreground"
+                      : "border-border/60 bg-background/50 text-muted-foreground hover:bg-accent/35 hover:text-foreground"
                   )}
                 >
                   {t(category.i18nKey as never)}
@@ -164,30 +164,32 @@ function IndicesPage() {
           </div>
 
           <div className="mt-7 max-w-[760px]">
-            <h1 className="text-[22px] font-semibold tracking-normal text-[#f1e2d0]">
+            <h1 className="text-[22px] font-semibold tracking-normal text-foreground">
               {t("indicesTitle")}
             </h1>
-            <p className="mt-3 text-[15px] leading-8 text-[#ddd3c5]">{t("indicesDescription")}</p>
+            <p className="mt-3 text-[15px] leading-8 text-foreground/80">
+              {t("indicesDescription")}
+            </p>
           </div>
 
-          <div className="mt-8 flex items-center justify-between gap-4 border-b border-[#31353a]">
+          <div className="mt-8 flex items-center justify-between gap-4 border-b border-border/60">
             <Tabs value={selectedTab} onValueChange={setSelectedTab} className="gap-0">
-              <TabsList variant="line" className="h-11 gap-5 p-0 text-[#aab0b6]">
+              <TabsList variant="line" className="h-11 gap-5 p-0 text-muted-foreground">
                 <TabsTrigger
                   value="overview"
-                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
+                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-foreground after:bg-primary"
                 >
                   {t("indicesTabOverview")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="performance"
-                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
+                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-foreground after:bg-primary"
                 >
                   {t("indicesTabPerformance")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="technicals"
-                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-[#f3f4f6] after:bg-[#d7ba95]"
+                  className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-foreground after:bg-primary"
                 >
                   {t("indicesTabTechnicals")}
                 </TabsTrigger>
@@ -195,7 +197,7 @@ function IndicesPage() {
             </Tabs>
 
             <div className="mb-2 flex items-center gap-3">
-              <div className="hidden text-right text-xs text-[#8f959c] md:block">
+              <div className="hidden text-right text-xs text-muted-foreground md:block">
                 <div>{formatAggregateProvider(aggregateProvider, resolvedProvider, t)}</div>
                 <div>{updatedAt ?? sourceNote}</div>
               </div>
@@ -203,7 +205,7 @@ function IndicesPage() {
                 type="button"
                 variant="outline"
                 size="icon-sm"
-                className="border-[#3a3e44] bg-[#202326] text-[#dfe3e6] hover:bg-[#292d31] hover:text-[#f5f5f5]"
+                className="border-border/60 bg-background/68 text-foreground backdrop-blur-md hover:bg-accent/50 hover:text-foreground"
                 onClick={() => setReloadToken((value) => value + 1)}
                 disabled={isLoading}
                 aria-label={t("indicesRefresh")}
@@ -214,37 +216,37 @@ function IndicesPage() {
           </div>
 
           {error ? (
-            <div className="mt-4 border border-[#5f2d2d] bg-[#2b1d1d] px-4 py-3 text-sm text-[#ffb4b4]">
+            <div className="mt-4 border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {t("indicesLoadFailed")}: {error}
             </div>
           ) : null}
 
-          <section className="mt-1 overflow-hidden">
+          <section className="mt-1 overflow-hidden rounded-xl border border-border/60 bg-background/72 backdrop-blur-xl supports-[backdrop-filter]:bg-background/58">
             <Table className="min-w-[1180px]">
               <TableHeader>
-                <TableRow className="border-[#31353a] hover:bg-transparent">
-                  <TableHead className="h-auto px-0 py-3 text-xs font-medium text-[#8d949b]">
+                <TableRow className="border-border/60 hover:bg-transparent">
+                  <TableHead className="h-auto px-0 py-3 text-xs font-medium text-muted-foreground">
                     <div className="pl-4">
                       <div>{t("indicesTableSymbol")}</div>
                       <div className="mt-1">{categoryCounts[selectedCategory]}</div>
                     </div>
                   </TableHead>
-                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
                     {t("indicesTablePrice")}
                   </TableHead>
-                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
                     {t("indicesTableChangePct")}
                   </TableHead>
-                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
                     {t("indicesTableChange")}
                   </TableHead>
-                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
                     {t("indicesTableHigh")}
                   </TableHead>
-                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-[#8d949b]">
+                  <TableHead className="px-3 py-3 text-right text-xs font-medium text-muted-foreground">
                     {t("indicesTableLow")}
                   </TableHead>
-                  <TableHead className="px-4 py-3 text-right text-xs font-medium text-[#8d949b]">
+                  <TableHead className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
                     {t("indicesTableTechRating")}
                   </TableHead>
                 </TableRow>
@@ -254,10 +256,10 @@ function IndicesPage() {
               ) : (
                 <TableBody>
                   {displayRows.length === 0 ? (
-                    <TableRow className="border-[#2f3338] hover:bg-transparent">
+                    <TableRow className="border-border/50 hover:bg-transparent">
                       <TableCell
                         colSpan={7}
-                        className="px-4 py-8 text-center text-sm text-[#98a0a8]"
+                        className="px-4 py-8 text-center text-sm text-muted-foreground"
                       >
                         {t("indicesNoData")}
                       </TableCell>
@@ -266,25 +268,25 @@ function IndicesPage() {
                     displayRows.map((row) => (
                       <TableRow
                         key={row.id}
-                        className="border-[#2f3338] text-[14px] hover:bg-[#202428]/80"
+                        className="border-border/50 text-[14px] hover:bg-accent/25"
                       >
                         <TableCell className="px-0 py-0">
                           <div className="grid min-h-[44px] grid-cols-[44px_minmax(0,1fr)] items-center gap-0 pl-4">
                             <IndexBadge symbol={row.symbol} />
                             <div className="min-w-0 py-3">
                               <div className="flex items-center gap-3">
-                                <span className="rounded bg-[#25292d] px-2 py-1 text-[12px] leading-none text-[#f0f3f5]">
+                                <span className="rounded bg-accent/50 px-2 py-1 text-[12px] leading-none text-foreground">
                                   {row.symbol}
                                 </span>
-                                <span className="truncate text-[#f2f4f6]">{row.name}</span>
+                                <span className="truncate text-foreground">{row.name}</span>
                               </div>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="px-3 py-3 text-right text-[#eff3f6]">
+                        <TableCell className="px-3 py-3 text-right text-foreground">
                           {formatMarketValue(row.price, locale, 2)}
                           {row.currency ? (
-                            <span className="ml-1 text-[10px] uppercase text-[#a0a7ae]">
+                            <span className="ml-1 text-[10px] uppercase text-muted-foreground">
                               {row.currency}
                             </span>
                           ) : null}
@@ -307,10 +309,10 @@ function IndicesPage() {
                             </span>
                           ) : null}
                         </TableCell>
-                        <TableCell className="px-3 py-3 text-right text-[#edf1f4]">
+                        <TableCell className="px-3 py-3 text-right text-foreground">
                           {formatMarketValue(row.high, locale, 2)}
                         </TableCell>
-                        <TableCell className="px-3 py-3 text-right text-[#edf1f4]">
+                        <TableCell className="px-3 py-3 text-right text-foreground">
                           {formatMarketValue(row.low, locale, 2)}
                         </TableCell>
                         <TableCell className="px-4 py-3 text-right">
@@ -326,7 +328,7 @@ function IndicesPage() {
             </Table>
           </section>
 
-          <div className="mt-4 flex items-center justify-between text-xs text-[#818891]">
+          <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
             <div>{countLabel}</div>
             <div className="text-right">
               <div>{sourceNote || t("indicesPreviewSource")}</div>
@@ -425,30 +427,30 @@ function formatPercent(value: number | null | undefined, locale: string) {
 
 function getSignedColorClass(value: number | null | undefined) {
   if (typeof value !== "number") {
-    return "text-[#b1b7be]"
+    return "text-muted-foreground"
   }
 
   if (value > 0) {
-    return "text-[#5ee7c2]"
+    return "text-emerald-600 dark:text-emerald-300"
   }
 
   if (value < 0) {
-    return "text-[#ff6f79]"
+    return "text-rose-600 dark:text-rose-300"
   }
 
-  return "text-[#b1b7be]"
+  return "text-muted-foreground"
 }
 
 function getRatingClass(value: string) {
   if (value === "Strong buy" || value === "Buy") {
-    return "text-[#63e0bf]"
+    return "text-emerald-600 dark:text-emerald-300"
   }
 
   if (value === "Strong sell" || value === "Sell") {
-    return "text-[#ff7078]"
+    return "text-rose-600 dark:text-rose-300"
   }
 
-  return "text-[#b8a88f]"
+  return "text-amber-700 dark:text-amber-300"
 }
 
 function compareMetric(left: number | null | undefined, right: number | null | undefined) {

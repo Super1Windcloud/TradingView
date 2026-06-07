@@ -73,6 +73,9 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --app-shell: oklch(0.975 0.006 95);
+  --app-shell-accent-1: oklch(0.9 0.03 85 / 0.7);
+  --app-shell-accent-2: oklch(0.92 0.018 235 / 0.45);
 }
 
 .dark {
@@ -107,6 +110,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --app-shell: oklch(0.16 0.008 260);
+  --app-shell-accent-1: oklch(0.34 0.03 35 / 0.18);
+  --app-shell-accent-2: oklch(0.29 0.03 225 / 0.16);
 }
 
 .dim {
@@ -141,6 +147,9 @@
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: oklch(0.45 0.003 260);
   --sidebar-ring: var(--ring);
+  --app-shell: oklch(0.3 0.01 260);
+  --app-shell-accent-1: oklch(0.46 0.03 35 / 0.15);
+  --app-shell-accent-2: oklch(0.42 0.03 260 / 0.13);
 }
 
 .ocean {
@@ -175,6 +184,9 @@
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: oklch(0.35 0.05 225);
   --sidebar-ring: var(--ring);
+  --app-shell: oklch(0.245 0.06 225);
+  --app-shell-accent-1: oklch(0.5 0.09 210 / 0.16);
+  --app-shell-accent-2: oklch(0.42 0.08 180 / 0.12);
 }
 
 .avocado {
@@ -209,13 +221,27 @@
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: oklch(0.36 0.05 140);
   --sidebar-ring: var(--ring);
+  --app-shell: oklch(0.27 0.08 140);
+  --app-shell-accent-1: oklch(0.53 0.1 150 / 0.16);
+  --app-shell-accent-2: oklch(0.44 0.08 95 / 0.12);
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground antialiased;
+    background-color: var(--app-shell);
+    background-image:
+      radial-gradient(circle at top left, var(--app-shell-accent-1) 0%, transparent 40%),
+      radial-gradient(circle at top right, var(--app-shell-accent-2) 0%, transparent 34%);
+    background-attachment: fixed;
   }
 }

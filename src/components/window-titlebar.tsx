@@ -94,7 +94,7 @@ export function WindowTitlebar() {
       data-tauri-drag-region
       onDoubleClick={handleToggleMaximize}
       onKeyDown={handleKeyDown}
-      className="flex h-10 items-center justify-between border-b border-border/60 bg-background/80 pl-3 pr-1 text-xs text-muted-foreground shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="flex h-10 items-center justify-between border-b border-border/50 bg-background/78 pl-3 pr-1 text-xs text-muted-foreground backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
     >
       <div className="flex select-none items-center gap-2">
         <AppIconMark />
@@ -114,7 +114,7 @@ export function WindowTitlebar() {
         <button
           type="button"
           aria-label="Minimize"
-          className="flex h-8 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex h-8 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           onClick={() => invoke((appWindow) => appWindow.minimize())}
         >
           <Minus className="h-5 w-5" strokeWidth={2} />
@@ -123,7 +123,7 @@ export function WindowTitlebar() {
         <button
           type="button"
           aria-label={isMaximized ? "Restore" : "Maximize"}
-          className="flex h-8 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex h-8 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           onClick={() => invoke((appWindow) => appWindow.toggleMaximize())}
         >
           {isMaximized ? (
