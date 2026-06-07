@@ -349,12 +349,15 @@ export function EtfOverviewPage() {
                 </Table>
               </section>
 
-              <div className="mt-4 flex items-center justify-between gap-4 text-xs text-muted-foreground">
-                <div>
+              <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-xs text-muted-foreground">
+                <div className="justify-self-start">
                   {Math.min(filteredRows.length, (currentPage - 1) * pageSize + 1)}-
                   {Math.min(currentPage * pageSize, filteredRows.length)} / {filteredRows.length}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="min-w-20 text-center">
+                  {t("paginationPage")} {currentPage} / {totalPages}
+                </div>
+                <div className="flex items-center justify-self-end gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -364,9 +367,6 @@ export function EtfOverviewPage() {
                   >
                     {t("paginationPrevious")}
                   </Button>
-                  <div className="min-w-20 text-center">
-                    {t("paginationPage")} {currentPage} / {totalPages}
-                  </div>
                   <Button
                     type="button"
                     variant="outline"

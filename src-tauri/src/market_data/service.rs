@@ -836,6 +836,35 @@ fn fetch_indices_with_tradingview_loop(
     Ok((rows, unavailable_count))
 }
 
+fn enrich_snapshot_with_tradingview_ta(
+    snapshot: &mut MarketSnapshot,
+    tradingview_symbol: Option<&str>,
+) {
+    if snapshot.technical_rating.is_some() {
+        return;
+    }
+
+    let Some(symbol) = tradingview_symbol else {
+        return;
+    };
+
+    match fetch_tradingview_technical_rating(symbol) {
+        Ok(Some(rating)) => {
+            snapshot.technical_rating = Some(rating);
+        }
+        Ok(None) => {}
+        Err(error) => {
+            warn!(
+                target: MARKET_LOG_TARGET,
+                "tradingview technical rating unavailable provider={} symbol={} error={}",
+                snapshot.provider,
+                symbol,
+                error
+            );
+        }
+    }
+}
+
 fn fetch_assets_with_provider(
     client: &reqwest::blocking::Client,
     provider: &str,
@@ -886,7 +915,12 @@ fn fetch_asset_snapshot(
             let symbol = definition
                 .finnhub_symbol
                 .ok_or_else(|| format!("Missing Finnhub symbol mapping for {}", definition.code))?;
-            fetch_finnhub(client, symbol, asset)
+            let mut snapshot = fetch_finnhub(client, symbol, asset)?;
+            enrich_snapshot_with_tradingview_ta(
+                &mut snapshot,
+                asset_tradingview_symbol(asset, definition.id),
+            );
+            Ok(snapshot)
         }
         "tradingview" => {
             let symbol = asset_tradingview_symbol(asset, definition.id)
@@ -898,7 +932,13 @@ fn fetch_asset_snapshot(
                 let symbol = definition.alpha_symbol.ok_or_else(|| {
                     format!("Missing Alpha symbol mapping for {}", definition.code)
                 })?;
-                fetch_alpha_global_quote(client, symbol, asset, definition.currency)
+                let mut snapshot =
+                    fetch_alpha_global_quote(client, symbol, asset, definition.currency)?;
+                enrich_snapshot_with_tradingview_ta(
+                    &mut snapshot,
+                    asset_tradingview_symbol(asset, definition.id),
+                );
+                Ok(snapshot)
             }
             AssetFetchKind::DigitalDaily => {
                 let symbol = definition.alpha_symbol.ok_or_else(|| {
@@ -907,13 +947,23 @@ fn fetch_asset_snapshot(
                 let market = definition.alpha_market.ok_or_else(|| {
                     format!("Missing Alpha market mapping for {}", definition.code)
                 })?;
-                fetch_alpha_digital_daily(client, symbol, market)
+                let mut snapshot = fetch_alpha_digital_daily(client, symbol, market)?;
+                enrich_snapshot_with_tradingview_ta(
+                    &mut snapshot,
+                    asset_tradingview_symbol(asset, definition.id),
+                );
+                Ok(snapshot)
             }
             AssetFetchKind::CommoditySeries => {
                 let function = definition.alpha_function.ok_or_else(|| {
                     format!("Missing Alpha commodity mapping for {}", definition.code)
                 })?;
-                fetch_alpha_commodity_series(client, function)
+                let mut snapshot = fetch_alpha_commodity_series(client, function)?;
+                enrich_snapshot_with_tradingview_ta(
+                    &mut snapshot,
+                    asset_tradingview_symbol(asset, definition.id),
+                );
+                Ok(snapshot)
             }
         },
         _ => Err(format!("Unsupported market data provider: {provider}")),
@@ -1661,7 +1711,12 @@ fn fetch_index_snapshot(
     let symbol = finnhub_symbol(definition)
         .ok_or_else(|| format!("Missing Finnhub symbol mapping for {}", definition.code))?;
 
-    fetch_finnhub(client, symbol, "index")
+    let mut snapshot = fetch_finnhub(client, symbol, "index")?;
+    enrich_snapshot_with_tradingview_ta(
+        &mut snapshot,
+        index_tradingview_symbol(definition.id),
+    );
+    Ok(snapshot)
 }
 
 
@@ -1677,6 +1732,74 @@ fn technical_rating(snapshot: Option<&MarketSnapshot>) -> String {
         Some(value) if value <= -0.4 => "Sell".to_string(),
         _ => "Neutral".to_string(),
     }
+}
+
+fn fetch_tradingview_technical_rating(tradingview_symbol: &str) -> Result<Option<String>, String> {
+    let script_path = resolve_tradingview_bridge_script()?;
+
+    let output = Command::new("node")
+        .arg("-e")
+        .arg(
+            "const TradingView = require(process.argv[1]); \
+            const symbol = process.argv[2]; \
+            const normalize = (ta) => { \
+              const daily = ta && typeof ta === 'object' ? ta['1D'] : null; \
+              const score = daily && typeof daily.All === 'number' ? daily.All : null; \
+              if (score === null) return null; \
+              if (score >= 0.5) return 'Strong buy'; \
+              if (score > 0) return 'Buy'; \
+              if (score <= -0.5) return 'Strong sell'; \
+              if (score < 0) return 'Sell'; \
+              return 'Neutral'; \
+            }; \
+            TradingView.getTA(symbol) \
+              .then((ta) => { process.stdout.write(JSON.stringify({ technical_rating: normalize(ta) })); }) \
+              .catch((error) => { process.stderr.write(error instanceof Error ? error.message : String(error)); process.exit(1); });",
+        )
+        .arg(
+            current_dir_join_node_module("@mathieuc/tradingview", &script_path)?
+                .to_string_lossy()
+                .to_string(),
+        )
+        .arg(tradingview_symbol)
+        .current_dir(script_path.parent().ok_or_else(|| {
+            "TradingView bridge script parent directory is missing".to_string()
+        })?)
+        .output()
+        .map_err(|error| format!("Failed to start TradingView TA bridge with node: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() { stderr } else { stdout };
+        return Err(format!(
+            "TradingView TA bridge failed for {tradingview_symbol}: {detail}"
+        ));
+    }
+
+    let stdout = String::from_utf8(output.stdout)
+        .map_err(|error| format!("TradingView TA bridge returned non-utf8 output: {error}"))?;
+    let payload = stdout.trim();
+
+    if payload.is_empty() {
+        return Ok(None);
+    }
+
+    let value: Value = serde_json::from_str(payload)
+        .map_err(|error| format!("TradingView TA bridge response parse failed: {error}"))?;
+
+    Ok(value
+        .get("technical_rating")
+        .and_then(Value::as_str)
+        .map(str::to_string))
+}
+
+fn current_dir_join_node_module(package_name: &str, script_path: &PathBuf) -> Result<PathBuf, String> {
+    let root = script_path.parent().and_then(|path| path.parent()).ok_or_else(|| {
+        "Unable to resolve project root for TradingView package".to_string()
+    })?;
+
+    Ok(root.join("node_modules").join(package_name))
 }
 
 fn fetch_finnhub(
