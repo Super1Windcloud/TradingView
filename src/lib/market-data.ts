@@ -511,6 +511,14 @@ export interface AssetOverviewResponse {
 
 export type MarketKind = "indices" | MarketAsset
 
+const supportedProvidersByKind: Record<MarketKind, MarketProvider[]> = {
+  indices: ["finnhub"],
+  stocks: ["alpha-vantage", "finnhub"],
+  etf: ["alpha-vantage", "finnhub"],
+  crypto: ["alpha-vantage"],
+  futures: ["alpha-vantage"],
+}
+
 export interface MarketItemDetailResponse {
   provider: MarketProvider
   kind: MarketKind
@@ -1034,6 +1042,23 @@ function buildPreviewAssetOverview(asset: MarketAsset): AssetOverviewResponse {
     tabs: defaultPreviewTabs,
     rows,
   }
+}
+
+export function resolvePreferredProvider(
+  kind: MarketKind,
+  aggregateProvider: "auto" | MarketProvider
+) {
+  if (aggregateProvider === "auto") {
+    return undefined
+  }
+
+  const supported = supportedProvidersByKind[kind]
+
+  if (supported.includes(aggregateProvider)) {
+    return aggregateProvider
+  }
+
+  return supported[0]
 }
 
 function buildPreviewMarketItemDetail(kind: MarketKind, itemId: string): MarketItemDetailResponse {

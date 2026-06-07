@@ -25,6 +25,7 @@ import {
   type MarketViewTab,
   marketAssetConfigs,
   providerLabels,
+  resolvePreferredProvider,
 } from "@/lib/market-data"
 import { useMarketProviderStore } from "@/lib/market-provider"
 import { cn } from "@/lib/utils"
@@ -37,6 +38,7 @@ export function MarketOverviewPage({ asset }: MarketOverviewPageProps) {
   const config = marketAssetConfigs[asset]
   const { t, locale } = useI18n()
   const { aggregateProvider } = useMarketProviderStore()
+  const effectiveProvider = resolvePreferredProvider(asset, aggregateProvider)
   const navigate = useNavigate()
   const [selectedTab, setSelectedTab] = useState("overview")
   const [activeCategoryId, setActiveCategoryId] = useState("")
@@ -59,10 +61,7 @@ export function MarketOverviewPage({ asset }: MarketOverviewPageProps) {
       setError(null)
 
       try {
-        const overview = await getAssetOverview(
-          asset,
-          aggregateProvider === "auto" ? undefined : aggregateProvider
-        )
+        const overview = await getAssetOverview(asset, effectiveProvider)
 
         if (ignore) {
           return
@@ -108,7 +107,7 @@ export function MarketOverviewPage({ asset }: MarketOverviewPageProps) {
     return () => {
       ignore = true
     }
-  }, [aggregateProvider, asset, reloadToken])
+  }, [effectiveProvider, asset, reloadToken])
 
   const sections = useMemo(() => {
     return categories.map((category) => ({
@@ -141,7 +140,9 @@ export function MarketOverviewPage({ asset }: MarketOverviewPageProps) {
 
   return (
     <main className="flex h-full min-h-0 overflow-hidden bg-background text-foreground">
-      <MarketSidebar footer={formatAggregateProvider(aggregateProvider, resolvedProvider, t)} />
+      <MarketSidebar
+        footer={formatAggregateProvider(aggregateProvider, effectiveProvider, resolvedProvider, t)}
+      />
 
       <section className="min-w-0 flex-1 overflow-hidden bg-background">
         <div className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-col px-5 pt-6 pb-6 sm:px-8">
@@ -193,7 +194,14 @@ export function MarketOverviewPage({ asset }: MarketOverviewPageProps) {
 
             <div className="mb-2 flex items-center gap-3">
               <div className="hidden text-right text-xs text-muted-foreground md:block">
-                <div>{formatAggregateProvider(aggregateProvider, resolvedProvider, t)}</div>
+                <div>
+                  {formatAggregateProvider(
+                    aggregateProvider,
+                    effectiveProvider,
+                    resolvedProvider,
+                    t
+                  )}
+                </div>
                 <div>{updatedAt ?? sourceNote}</div>
               </div>
               <Button
@@ -528,6 +536,7 @@ function technicalWeight(value: string) {
 
 function formatAggregateProvider(
   aggregateProvider: "auto" | MarketProvider,
+  effectiveProvider: MarketProvider | undefined,
   resolvedProvider: MarketProvider | null,
   t: ReturnType<typeof useI18n>["t"]
 ) {
@@ -537,5 +546,9 @@ function formatAggregateProvider(
       : t("aggregateProviderAuto")
   }
 
-  return providerLabels[aggregateProvider]
+  if (effectiveProvider && effectiveProvider !== aggregateProvider) {
+    return `${providerLabels[aggregateProvider]} -> ${providerLabels[effectiveProvider]}`
+  }
+
+  return providerLabels[effectiveProvider ?? aggregateProvider]
 }

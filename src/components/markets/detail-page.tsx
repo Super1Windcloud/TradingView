@@ -12,6 +12,7 @@ import {
   type MarketKind,
   type MarketProvider,
   providerLabels,
+  resolvePreferredProvider,
 } from "@/lib/market-data"
 import { useMarketProviderStore } from "@/lib/market-provider"
 import { cn } from "@/lib/utils"
@@ -24,6 +25,7 @@ interface MarketDetailPageProps {
 export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
   const { t, locale } = useI18n()
   const { aggregateProvider } = useMarketProviderStore()
+  const effectiveProvider = resolvePreferredProvider(kind, aggregateProvider)
   const [reloadToken, setReloadToken] = useState(0)
   const [detail, setDetail] = useState<MarketItemDetailResponse | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -38,11 +40,7 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
       setError(null)
 
       try {
-        const response = await getMarketItemDetail(
-          kind,
-          itemId,
-          aggregateProvider === "auto" ? undefined : aggregateProvider
-        )
+        const response = await getMarketItemDetail(kind, itemId, effectiveProvider)
 
         if (!ignore) {
           setDetail(response)
@@ -64,10 +62,15 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
     return () => {
       ignore = true
     }
-  }, [aggregateProvider, itemId, kind, reloadToken])
+  }, [effectiveProvider, itemId, kind, reloadToken])
 
   const listPath = kind === "indices" ? "/" : `/${kind}`
-  const sidebarFooter = formatAggregateProvider(aggregateProvider, detail?.provider ?? null, t)
+  const sidebarFooter = formatAggregateProvider(
+    aggregateProvider,
+    effectiveProvider,
+    detail?.provider ?? null,
+    t
+  )
   const tradingViewLink = detail?.tradingview_symbol
     ? `https://www.tradingview.com/symbols/${detail.tradingview_symbol.replace(":", "-").replace("!", "")}/`
     : null
@@ -306,6 +309,7 @@ function getRatingClass(value: string) {
 
 function formatAggregateProvider(
   aggregateProvider: "auto" | MarketProvider,
+  effectiveProvider: MarketProvider | undefined,
   resolvedProvider: MarketProvider | null,
   t: (key: never) => string
 ) {
@@ -315,5 +319,9 @@ function formatAggregateProvider(
       : t("aggregateProviderAuto" as never)
   }
 
-  return providerLabels[aggregateProvider]
+  if (effectiveProvider && effectiveProvider !== aggregateProvider) {
+    return `${providerLabels[aggregateProvider]} -> ${providerLabels[effectiveProvider]}`
+  }
+
+  return providerLabels[effectiveProvider ?? aggregateProvider]
 }
