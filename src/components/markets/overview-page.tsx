@@ -14,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useI18n } from "@/lib/i18n"
 import {
   getAssetOverview,
@@ -25,7 +24,6 @@ import {
   type IndexOverviewRow,
   type MarketAsset,
   type MarketProvider,
-  type MarketViewTab,
   marketAssetConfigs,
   providerLabels,
   resolvePreferredProvider,
@@ -42,7 +40,6 @@ type OverviewCategory = IndexCategoryCount | AssetCategoryCount
 interface OverviewCacheEntry {
   rows: OverviewRow[]
   categories: OverviewCategory[]
-  tabs: MarketViewTab[]
   updatedAt: string | null
   sourceNote: string
   resolvedProvider: MarketProvider | null
@@ -62,13 +59,11 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
   const effectiveProvider = resolvePreferredProvider(kind, selectedProvider) ?? selectedProvider
   const navigate = useNavigate()
   const assetConfig = kind === "indices" ? null : marketAssetConfigs[kind]
-  const [selectedTab, setSelectedTab] = useState("overview")
   const [activeFilterId, setActiveFilterId] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [reloadToken, setReloadToken] = useState(0)
   const [rows, setRows] = useState<OverviewRow[]>([])
   const [categories, setCategories] = useState<OverviewCategory[]>([])
-  const [tabs, setTabs] = useState<MarketViewTab[]>([])
   const [updatedAt, setUpdatedAt] = useState<string | null>(null)
   const [sourceNote, setSourceNote] = useState("")
   const [resolvedProvider, setResolvedProvider] = useState<MarketProvider | null>(null)
@@ -83,10 +78,8 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const overviewCacheRef = useRef(new Map<string, OverviewCacheEntry>())
-  const tabRowsCacheRef = useRef(new Map<string, OverviewRow[]>())
 
   const cacheKey = `${kind}:${requestedProvider ?? "auto"}:${activeFilterId}:${reloadToken}`
-  const rowsCacheKey = `${cacheKey}:${selectedTab}`
 
   useEffect(() => {
     let ignore = false
@@ -97,7 +90,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
       if (cached) {
         setRows(cached.rows)
         setCategories(cached.categories)
-        setTabs(cached.tabs)
         setUpdatedAt(cached.updatedAt)
         setSourceNote(cached.sourceNote)
         setResolvedProvider(cached.resolvedProvider)
@@ -121,7 +113,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
           const nextEntry: OverviewCacheEntry = {
             rows: overview.rows,
             categories: overview.categories,
-            tabs: overview.tabs,
             updatedAt: overview.updated_at,
             sourceNote: overview.source_note,
             resolvedProvider: overview.provider,
@@ -132,7 +123,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
           overviewCacheRef.current.set(cacheKey, nextEntry)
           setRows(overview.rows)
           setCategories(overview.categories)
-          setTabs(overview.tabs)
           setUpdatedAt(overview.updated_at)
           setSourceNote(overview.source_note)
           setResolvedProvider(overview.provider)
@@ -142,11 +132,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
             current === "all" || overview.categories.some((item) => item.id === current)
               ? current
               : "all"
-          )
-          setSelectedTab((current) =>
-            overview.tabs.some((item) => item.id === current)
-              ? current
-              : (overview.tabs[0]?.id ?? "overview")
           )
         } else {
           const overview = await getAssetOverview(kind, requestedProvider, activeFilterId)
@@ -158,7 +143,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
           const nextEntry: OverviewCacheEntry = {
             rows: overview.rows,
             categories: overview.categories,
-            tabs: overview.tabs,
             updatedAt: overview.updated_at,
             sourceNote: overview.source_note,
             resolvedProvider: overview.provider,
@@ -169,7 +153,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
           overviewCacheRef.current.set(cacheKey, nextEntry)
           setRows(overview.rows)
           setCategories(overview.categories)
-          setTabs(overview.tabs)
           setUpdatedAt(overview.updated_at)
           setSourceNote(overview.source_note)
           setResolvedProvider(overview.provider)
@@ -180,11 +163,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
               ? current
               : "all"
           )
-          setSelectedTab((current) =>
-            overview.tabs.some((item) => item.id === current)
-              ? current
-              : (overview.tabs[0]?.id ?? "overview")
-          )
         }
       } catch (requestError) {
         if (ignore) {
@@ -193,7 +171,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
 
         setRows([])
         setCategories([])
-        setTabs([])
         setUpdatedAt(null)
         setSourceNote("")
         setResolvedProvider(null)
@@ -227,17 +204,7 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
     [categories, t]
   )
 
-  const filteredRows = useMemo(() => {
-    const cached = tabRowsCacheRef.current.get(rowsCacheKey)
-
-    if (cached) {
-      return cached
-    }
-
-    const nextRows = sortRowsForTab(rows, selectedTab)
-    tabRowsCacheRef.current.set(rowsCacheKey, nextRows)
-    return nextRows
-  }, [rows, rowsCacheKey, selectedTab])
+  const filteredRows = useMemo(() => rows, [rows])
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize))
 
   useEffect(() => {
@@ -248,7 +215,7 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [activeFilterId, selectedTab, kind])
+  }, [activeFilterId, kind])
 
   const pagedRows = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize
@@ -312,20 +279,6 @@ export function MarketOverviewPage({ kind }: MarketOverviewPageProps) {
           </div>
 
           <div className="mt-4 flex shrink-0 items-center justify-between gap-4 border-b border-border/60">
-            <Tabs value={selectedTab} onValueChange={setSelectedTab} className="gap-0">
-              <TabsList variant="line" className="h-11 gap-5 p-0 text-muted-foreground">
-                {tabs.map((tab) => (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    className="h-11 rounded-none px-0 text-[15px] data-[state=active]:text-foreground after:bg-primary"
-                  >
-                    {t(tab.label_key as never)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
             <div className="mb-2 flex items-center gap-3">
               <div className="hidden text-right text-xs text-muted-foreground md:block">
                 <div>
@@ -539,29 +492,6 @@ function AssetBadge({ symbol }: { symbol: string }) {
   )
 }
 
-function sortRowsForTab(rows: OverviewRow[], tab: string) {
-  const next = [...rows]
-
-  if (tab === "performance") {
-    return next.sort((left, right) => compareMetric(right.change_percent, left.change_percent))
-  }
-
-  if (tab === "technicals") {
-    return next.sort((left, right) => {
-      const ratingDelta =
-        technicalWeight(right.technical_rating) - technicalWeight(left.technical_rating)
-
-      if (ratingDelta !== 0) {
-        return ratingDelta
-      }
-
-      return compareMetric(right.change_percent, left.change_percent)
-    })
-  }
-
-  return next
-}
-
 function formatMarketValue(
   value: number | null | undefined,
   locale: string,
@@ -643,26 +573,6 @@ function compareMetric(left: number | null | undefined, right: number | null | u
   }
 
   return leftValue > rightValue ? 1 : -1
-}
-
-function technicalWeight(value: string) {
-  if (value === "Strong buy") {
-    return 4
-  }
-
-  if (value === "Buy") {
-    return 3
-  }
-
-  if (value === "Neutral") {
-    return 2
-  }
-
-  if (value === "Sell") {
-    return 1
-  }
-
-  return 0
 }
 
 function formatAggregateProvider(
