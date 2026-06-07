@@ -12,7 +12,12 @@ import { useI18n } from "@/lib/i18n"
 import { providerLabels } from "@/lib/market-data"
 import { type AggregateProvider, useMarketProviderStore } from "@/lib/market-provider"
 
-const aggregateProviderOptions: AggregateProvider[] = ["auto", "alpha-vantage", "finnhub"]
+const aggregateProviderOptions: AggregateProvider[] = [
+  "auto",
+  "alpha-vantage",
+  "finnhub",
+  "tradingview",
+]
 
 export function MarketProviderSwitcher() {
   const { aggregateProvider, setAggregateProvider } = useMarketProviderStore()

@@ -129,7 +129,7 @@ pub(crate) struct MarketItemDetailResponse {
     pub(crate) tradingview_symbol: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct MarketChartPoint {
     pub(crate) time: String,
     pub(crate) open: Option<f64>,
@@ -139,7 +139,7 @@ pub(crate) struct MarketChartPoint {
     pub(crate) value: Option<f64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct MarketChartSeriesResponse {
     pub(crate) provider: String,
     pub(crate) kind: String,

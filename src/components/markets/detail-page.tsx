@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 
 import { MarketPriceChart } from "@/components/markets/market-price-chart"
 import { MarketSidebar } from "@/components/markets/sidebar"
+import { TradingViewAdvancedChart } from "@/components/markets/tradingview-advanced-chart"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -35,6 +36,7 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
   const { t, locale } = useI18n()
   const { aggregateProvider } = useMarketProviderStore()
   const effectiveProvider = resolvePreferredProvider(kind, aggregateProvider)
+  const chartProvider = aggregateProvider === "tradingview" ? "tradingview" : effectiveProvider
   const [reloadToken, setReloadToken] = useState(0)
   const [detail, setDetail] = useState<MarketItemDetailResponse | null>(null)
   const [chartSeries, setChartSeries] = useState<MarketChartSeriesResponse | null>(null)
@@ -43,6 +45,9 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [chartError, setChartError] = useState<string | null>(null)
   const [isChartDialogOpen, setIsChartDialogOpen] = useState(false)
+  const [chartMode, setChartMode] = useState<"native" | "tradingview">(
+    aggregateProvider === "tradingview" ? "tradingview" : "native"
+  )
 
   useEffect(() => {
     let ignore = false
@@ -57,7 +62,7 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
 
       const [detailResult, chartResult] = await Promise.allSettled([
         getMarketItemDetail(kind, itemId, effectiveProvider),
-        getMarketChartSeries(kind, itemId, effectiveProvider),
+        getMarketChartSeries(kind, itemId, chartProvider),
       ])
 
       if (ignore) {
@@ -94,7 +99,11 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
     return () => {
       ignore = true
     }
-  }, [effectiveProvider, itemId, kind, reloadToken])
+  }, [chartProvider, effectiveProvider, itemId, kind, reloadToken])
+
+  useEffect(() => {
+    setChartMode(aggregateProvider === "tradingview" ? "tradingview" : "native")
+  }, [aggregateProvider])
 
   const listPath = kind === "indices" ? "/" : `/${kind}`
   const sidebarFooter = formatAggregateProvider(
@@ -107,6 +116,9 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
   const chartSourceLabel = chartSeries
     ? `${getProviderLabel(chartSeries.provider)} · ${chartSeries.source_note}`
     : null
+  const hasTradingViewSymbol = Boolean(detail?.tradingview_symbol)
+  const canRenderTradingView = hasTradingViewSymbol
+  const showTradingView = canRenderTradingView && chartMode === "tradingview"
 
   return (
     <main className="flex min-h-full bg-background text-foreground">
@@ -208,14 +220,46 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
 
               <div className="mt-6 rounded-xl border border-border/60 bg-background/72 px-4 py-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/58">
                 <div className="mb-4 flex items-center justify-between gap-4">
-                  <div className="text-sm font-medium text-foreground">{t("detailChartTitle")}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium text-foreground">
+                      {t("detailChartTitle")}
+                    </div>
+                    {canRenderTradingView ? (
+                      <div className="flex items-center rounded-md border border-border/60 bg-background/80 p-1 text-xs">
+                        <button
+                          type="button"
+                          className={cn(
+                            "rounded px-2 py-1 transition-colors",
+                            chartMode === "native"
+                              ? "bg-accent text-foreground"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                          onClick={() => setChartMode("native")}
+                        >
+                          {t("detailChartModeNative")}
+                        </button>
+                        <button
+                          type="button"
+                          className={cn(
+                            "rounded px-2 py-1 transition-colors",
+                            chartMode === "tradingview"
+                              ? "bg-accent text-foreground"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                          onClick={() => setChartMode("tradingview")}
+                        >
+                          TradingView
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
                     className="text-muted-foreground hover:text-foreground"
                     onClick={() => setIsChartDialogOpen(true)}
-                    disabled={!hasChartData}
+                    disabled={showTradingView ? !canRenderTradingView : !hasChartData}
                     aria-label={t("detailChartOpen")}
                     title={t("detailChartOpen")}
                   >
@@ -223,7 +267,22 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
                   </Button>
                 </div>
 
-                {isChartLoading ? (
+                {showTradingView ? (
+                  <>
+                    <TradingViewAdvancedChart symbol={detail?.tradingview_symbol ?? ""} />
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+                      <span>{t("detailChartTradingViewSource")}</span>
+                      <a
+                        href={`https://www.tradingview.com/chart/?symbol=${encodeURIComponent(detail?.tradingview_symbol ?? "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="transition-colors hover:text-foreground"
+                      >
+                        {t("detailChartAttribution")}
+                      </a>
+                    </div>
+                  </>
+                ) : isChartLoading ? (
                   <div className="flex h-[520px] items-center justify-center rounded-lg border border-dashed border-border/60 text-sm text-muted-foreground">
                     {t("detailChartLoading")}
                   </div>
@@ -289,7 +348,26 @@ export function MarketDetailPage({ itemId, kind }: MarketDetailPageProps) {
             </DialogDescription>
           </DialogHeader>
 
-          {chartSeries ? (
+          {showTradingView && detail?.tradingview_symbol ? (
+            <div className="px-4 pt-4 pb-4">
+              <TradingViewAdvancedChart
+                className="rounded-md border-border/60"
+                symbol={detail.tradingview_symbol}
+                height={720}
+              />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-1 text-xs text-muted-foreground">
+                <span>{t("detailChartTradingViewSource")}</span>
+                <a
+                  href={`https://www.tradingview.com/chart/?symbol=${encodeURIComponent(detail.tradingview_symbol)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="transition-colors hover:text-foreground"
+                >
+                  {t("detailChartAttribution")}
+                </a>
+              </div>
+            </div>
+          ) : chartSeries ? (
             <div className="px-4 pt-4 pb-4">
               <MarketPriceChart
                 className="rounded-md border-border/60"

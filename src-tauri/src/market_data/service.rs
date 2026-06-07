@@ -20,8 +20,9 @@ use log::{debug, error, info, warn};
 use serde_json::{Map, Value};
 use std::{
     collections::HashMap,
-    env,
+    env, fs,
     path::PathBuf,
+    process::Command,
     sync::{Mutex, Once, OnceLock},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
@@ -340,20 +341,41 @@ fn get_market_chart_series_sync(
         preferred_provider
     );
 
+    let requested_provider = preferred_provider
+        .as_deref()
+        .map(str::trim)
+        .filter(|provider| !provider.is_empty());
+
     let response = if selected_kind == "indices" {
         let definition = index_definition_by_id(&item_id)
             .ok_or_else(|| format!("Unknown index chart item id: {item_id}"))?;
-        let provider = resolve_indices_provider(preferred_provider.as_deref())?;
-
-        fetch_index_chart_series(&client, provider, definition)
+        if requested_provider == Some("tradingview") {
+            fetch_tradingview_chart_series(
+                "indices",
+                definition.id,
+                definition.code,
+                index_tradingview_symbol(definition.id),
+            )
+        } else {
+            let provider = resolve_indices_provider(preferred_provider.as_deref())?;
+            fetch_index_chart_series(&client, provider, definition)
+        }
     } else {
         let asset = normalize_asset(&selected_kind)?;
-        let provider = resolve_asset_provider(&asset, preferred_provider.as_deref())?;
-        let provider = maybe_fallback_chart_provider(&asset, provider);
         let definition = asset_definition_by_id(&asset, &item_id)
             .ok_or_else(|| format!("Unknown market chart item id: {item_id}"))?;
-
-        fetch_asset_chart_series(&client, provider, &asset, definition)
+        if requested_provider == Some("tradingview") {
+            fetch_tradingview_chart_series(
+                &asset,
+                definition.id,
+                definition.code,
+                asset_tradingview_symbol(&asset, definition.id),
+            )
+        } else {
+            let provider = resolve_asset_provider(&asset, preferred_provider.as_deref())?;
+            let provider = maybe_fallback_chart_provider(&asset, provider);
+            fetch_asset_chart_series(&client, provider, &asset, definition)
+        }
     }?;
 
     info!(
@@ -367,6 +389,83 @@ fn get_market_chart_series_sync(
     );
 
     Ok(response)
+}
+
+fn fetch_tradingview_chart_series(
+    kind: &str,
+    id: &str,
+    symbol: &str,
+    tradingview_symbol: Option<&str>,
+) -> Result<MarketChartSeriesResponse, String> {
+    let tradingview_symbol = tradingview_symbol
+        .ok_or_else(|| format!("Missing TradingView symbol mapping for {kind}/{id}"))?;
+    let script_path = resolve_tradingview_bridge_script()?;
+
+    info!(
+        target: MARKET_LOG_TARGET,
+        "launching tradingview bridge kind={} id={} symbol={} tradingview_symbol={}",
+        kind,
+        id,
+        symbol,
+        tradingview_symbol
+    );
+
+    let output =
+        Command::new("node")
+            .arg(&script_path)
+            .arg(tradingview_symbol)
+            .arg("D")
+            .current_dir(script_path.parent().ok_or_else(|| {
+                "TradingView bridge script parent directory is missing".to_string()
+            })?)
+            .output()
+            .map_err(|error| format!("Failed to start TradingView bridge with node: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let detail = if !stderr.is_empty() { stderr } else { stdout };
+        return Err(format!(
+            "TradingView bridge failed for {tradingview_symbol}: {detail}"
+        ));
+    }
+
+    let stdout = String::from_utf8(output.stdout)
+        .map_err(|error| format!("TradingView bridge returned non-utf8 output: {error}"))?;
+    let payload = stdout.trim();
+
+    let mut response = serde_json::from_str::<MarketChartSeriesResponse>(payload)
+        .map_err(|error| format!("TradingView bridge response parse failed: {error}"))?;
+
+    response.kind = kind.to_string();
+    response.id = id.to_string();
+    response.symbol = symbol.to_string();
+
+    Ok(response)
+}
+
+fn resolve_tradingview_bridge_script() -> Result<PathBuf, String> {
+    let current_dir = env::current_dir().map_err(|error| {
+        format!("Unable to resolve current_dir for TradingView bridge: {error}")
+    })?;
+    let candidates = [
+        current_dir.join("scripts").join("tradingview-chart.cjs"),
+        current_dir
+            .join("..")
+            .join("scripts")
+            .join("tradingview-chart.cjs"),
+    ];
+
+    for path in candidates {
+        if fs::metadata(&path).is_ok() {
+            return Ok(path);
+        }
+    }
+
+    Err(
+        "TradingView bridge script was not found. Expected scripts/tradingview-chart.cjs."
+            .to_string(),
+    )
 }
 
 fn build_http_client() -> Result<reqwest::blocking::Client, String> {

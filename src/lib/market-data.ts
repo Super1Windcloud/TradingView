@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core"
 
-export type MarketProvider = "alpha-vantage" | "finnhub"
+export type MarketProvider = "alpha-vantage" | "finnhub" | "tradingview"
 
 export const indexCategoryIds = [
   "all",
@@ -68,6 +68,7 @@ export interface IndicesOverviewResponse {
 export const providerLabels: Record<MarketProvider, string> = {
   "alpha-vantage": "Alpha Vantage",
   finnhub: "Finnhub",
+  tradingview: "TradingView",
 }
 
 export const indexCategories: Array<{ id: IndicesCategory; i18nKey: string }> = [
