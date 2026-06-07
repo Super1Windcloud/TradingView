@@ -3,14 +3,20 @@ use super::catalog::{
     index_symbol_for_provider,
 };
 use super::models::{
-    FinnhubQuote, IndexOverviewRow, IndicesOverviewResponse, MarketSnapshot, MassiveAggResponse,
-    MassiveIndexSnapshot, MassiveIndicesSnapshotResponse, TwelveQuote,
+    FinnhubQuote, IndexOverviewRow, IndicesOverviewResponse, MarketSnapshot, TwelveQuote,
 };
 use log::{debug, error, info, warn};
 use serde_json::Value;
-use std::{collections::HashMap, env, path::PathBuf, sync::Once, time::Duration};
+use std::{
+    collections::{HashMap, HashSet},
+    env,
+    path::PathBuf,
+    sync::Once,
+    time::Duration,
+};
 
 pub(crate) const MARKET_LOG_TARGET: &str = "astraquant::market_data";
+const DEFAULT_TWELVEDATA_SYMBOL_BUDGET: usize = 8;
 
 static ENV_LOADER: Once = Once::new();
 
@@ -33,7 +39,6 @@ pub(crate) fn get_market_snapshot(
 
     let result = match provider.as_str() {
         "finnhub" => fetch_finnhub(&client, &symbol, &asset_class),
-        "massive" => fetch_massive(&client, &symbol, &asset_class),
         "twelvedata" => fetch_twelve_data(&client, &symbol, &asset_class),
         _ => {
             let message = format!("Unsupported market data provider: {provider}");
@@ -90,7 +95,6 @@ pub(crate) fn get_indices_overview(
 
     let (rows, unavailable_count) = match provider {
         "twelvedata" => fetch_indices_with_twelvedata(&client, &definitions)?,
-        "massive" => fetch_indices_with_massive_snapshot(&client, &definitions)?,
         "finnhub" => fetch_indices_with_symbol_loop(&client, &definitions, provider)?,
         _ => return Err(format!("Unsupported market data provider: {provider}")),
     };
@@ -215,6 +219,25 @@ fn has_env_key(names: &[&str]) -> bool {
     })
 }
 
+fn read_usize_env(name: &str, default: usize) -> usize {
+    match env::var(name) {
+        Ok(raw) => match raw.trim().parse::<usize>() {
+            Ok(value) if value > 0 => value,
+            Ok(_) | Err(_) => {
+                warn!(
+                    target: MARKET_LOG_TARGET,
+                    "invalid usize env value name={} raw={} defaulting_to={}",
+                    name,
+                    raw,
+                    default
+                );
+                default
+            }
+        },
+        Err(_) => default,
+    }
+}
+
 fn read_json_response<T: serde::de::DeserializeOwned>(
     response: reqwest::blocking::Response,
     provider: &str,
@@ -289,7 +312,6 @@ fn truncate_for_log(value: &str, max_chars: usize) -> String {
 fn provider_label(provider: &str) -> &'static str {
     match provider {
         "finnhub" => "Finnhub",
-        "massive" => "Massive",
         "twelvedata" => "Twelve Data",
         _ => "Unknown",
     }
@@ -313,14 +335,6 @@ fn resolve_indices_provider(preferred: Option<&str>) -> Result<&'static str, Str
                 );
                 Ok("twelvedata")
             }
-            "massive" if has_env_key(&["MASSIVE_API_KEY", "POLYGON_API_KEY"]) => {
-                info!(
-                    target: MARKET_LOG_TARGET,
-                    "resolved indices provider requested={} selected=massive",
-                    provider
-                );
-                Ok("massive")
-            }
             "finnhub" if has_env_key(&["FINNHUB_API_KEY", "FINNHUB_TOKEN"]) => {
                 info!(
                     target: MARKET_LOG_TARGET,
@@ -329,7 +343,7 @@ fn resolve_indices_provider(preferred: Option<&str>) -> Result<&'static str, Str
                 );
                 Ok("finnhub")
             }
-            "twelvedata" | "massive" | "finnhub" => {
+            "twelvedata" | "finnhub" => {
                 let message = format!(
                     "{} API key is not configured for aggregated indices",
                     provider_label(provider)
@@ -353,14 +367,6 @@ fn resolve_indices_provider(preferred: Option<&str>) -> Result<&'static str, Str
         return Ok("twelvedata");
     }
 
-    if has_env_key(&["MASSIVE_API_KEY", "POLYGON_API_KEY"]) {
-        info!(
-            target: MARKET_LOG_TARGET,
-            "resolved indices provider automatically selected=massive"
-        );
-        return Ok("massive");
-    }
-
     if has_env_key(&["FINNHUB_API_KEY", "FINNHUB_TOKEN"]) {
         info!(
             target: MARKET_LOG_TARGET,
@@ -370,7 +376,7 @@ fn resolve_indices_provider(preferred: Option<&str>) -> Result<&'static str, Str
     }
 
     let message =
-        "Missing API key. Configure TWELVE_DATA_API_KEY, MASSIVE_API_KEY/POLYGON_API_KEY, or FINNHUB_API_KEY."
+        "Missing API key. Configure TWELVE_DATA_API_KEY/TWELVEDATA_API_KEY or FINNHUB_API_KEY/FINNHUB_TOKEN."
             .to_string();
     error!(target: MARKET_LOG_TARGET, "{message}");
     Err(message)
@@ -425,7 +431,6 @@ fn fetch_indices_with_symbol_loop(
 
         let snapshot = match provider {
             "finnhub" => fetch_finnhub(client, provider_symbol, "index"),
-            "massive" => fetch_massive(client, provider_symbol, "index"),
             "twelvedata" => fetch_twelve_data(client, provider_symbol, "index"),
             _ => {
                 let message = format!("Unsupported market data provider: {provider}");
@@ -456,153 +461,6 @@ fn fetch_indices_with_symbol_loop(
     Ok((rows, unavailable_count))
 }
 
-fn fetch_indices_with_massive_snapshot(
-    client: &reqwest::blocking::Client,
-    definitions: &[&IndexDefinition],
-) -> Result<(Vec<IndexOverviewRow>, usize), String> {
-    let token = env_key(&["MASSIVE_API_KEY", "POLYGON_API_KEY"])?;
-    let symbols: Vec<&str> = definitions
-        .iter()
-        .filter_map(|definition| definition.symbols.massive)
-        .collect();
-
-    if symbols.is_empty() {
-        warn!(
-            target: MARKET_LOG_TARGET,
-            "massive snapshot requested with zero mapped symbols; returning empty set"
-        );
-        return Ok((Vec::new(), 0));
-    }
-
-    let url = format!(
-        "https://api.massive.com/v3/snapshot/indices?ticker.any_of={}&limit={}&sort=ticker&order=asc&apiKey={}",
-        urlencoding::encode(&symbols.join(",")),
-        symbols.len(),
-        urlencoding::encode(&token)
-    );
-    let subject = format!("{} symbols", symbols.len());
-
-    debug!(
-        target: MARKET_LOG_TARGET,
-        "http request start provider=massive operation=indices snapshot subject={subject}"
-    );
-
-    let response = client.get(url).send().map_err(|error| {
-        let message = format!("massive indices snapshot request failed for {subject}: {error}");
-        error!(target: MARKET_LOG_TARGET, "{message}");
-        message
-    })?;
-
-    let status = response.status();
-    let body = response.text().map_err(|error| {
-        let message =
-            format!("massive indices snapshot response body read failed for {subject}: {error}");
-        error!(target: MARKET_LOG_TARGET, "{message}");
-        message
-    })?;
-
-    debug!(
-        target: MARKET_LOG_TARGET,
-        "http response provider=massive operation=indices snapshot subject={subject} status={} body_bytes={}",
-        status,
-        body.len()
-    );
-
-    if status == reqwest::StatusCode::FORBIDDEN || status == reqwest::StatusCode::TOO_MANY_REQUESTS
-    {
-        let body_preview = truncate_for_log(&body, 400);
-        let message = format!(
-            "massive indices snapshot unavailable status={} symbols={} body={body_preview}",
-            status,
-            symbols.len()
-        );
-        error!(target: MARKET_LOG_TARGET, "{message}");
-        return Err(message);
-    }
-
-    if !status.is_success() {
-        let body_preview = truncate_for_log(&body, 400);
-        warn!(
-            target: MARKET_LOG_TARGET,
-            "massive indices snapshot failed status={} symbols={} body={} falling_back=per_symbol",
-            status,
-            symbols.len(),
-            body_preview
-        );
-        return fetch_indices_with_symbol_loop(client, definitions, "massive");
-    }
-
-    let response: MassiveIndicesSnapshotResponse = match serde_json::from_str(&body) {
-        Ok(response) => response,
-        Err(error) => {
-            let body_preview = truncate_for_log(&body, 400);
-            warn!(
-                target: MARKET_LOG_TARGET,
-                "massive indices snapshot parse failed symbols={} error={} body={} falling_back=per_symbol",
-                symbols.len(),
-                error,
-                body_preview
-            );
-            return fetch_indices_with_symbol_loop(client, definitions, "massive");
-        }
-    };
-
-    let snapshot_map = response
-        .results
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|snapshot| {
-            let ticker = snapshot.ticker.as_deref()?;
-            Some((normalize_symbol(ticker), snapshot))
-        })
-        .collect::<HashMap<_, _>>();
-
-    debug!(
-        target: MARKET_LOG_TARGET,
-        "massive indices snapshot parsed symbols={}",
-        snapshot_map.len()
-    );
-
-    let mut unavailable_count = 0;
-    let rows = definitions
-        .iter()
-        .map(|definition| {
-            let snapshot = definition
-                .symbols
-                .massive
-                .and_then(|symbol| snapshot_map.get(&normalize_symbol(symbol)));
-
-            match snapshot {
-                Some(snapshot) => {
-                    if snapshot.error.is_some() || snapshot.message.is_some() {
-                        unavailable_count += 1;
-                        warn!(
-                            target: MARKET_LOG_TARGET,
-                            "massive indices snapshot returned symbol error symbol={} error={:?} message={:?}",
-                            definition.code,
-                            snapshot.error,
-                            snapshot.message
-                        );
-                    }
-
-                    massive_index_row_from_snapshot(definition, snapshot)
-                }
-                None => {
-                    unavailable_count += 1;
-                    warn!(
-                        target: MARKET_LOG_TARGET,
-                        "massive indices snapshot missing symbol in response symbol={}",
-                        definition.code
-                    );
-                    index_row_from_snapshot(definition, None)
-                }
-            }
-        })
-        .collect();
-
-    Ok((rows, unavailable_count))
-}
-
 fn fetch_indices_with_twelvedata(
     client: &reqwest::blocking::Client,
     definitions: &[&IndexDefinition],
@@ -617,9 +475,30 @@ fn fetch_indices_with_twelvedata(
         return Ok((Vec::new(), 0));
     }
 
+    let symbol_budget = read_usize_env(
+        "TWELVEDATA_INDEX_SYMBOL_BUDGET",
+        DEFAULT_TWELVEDATA_SYMBOL_BUDGET,
+    );
+    let requested_symbols: Vec<&str> = symbols.iter().copied().take(symbol_budget).collect();
+    let requested_symbol_keys = requested_symbols
+        .iter()
+        .map(|symbol| normalize_symbol(symbol))
+        .collect::<HashSet<_>>();
+    let deferred_count = symbols.len().saturating_sub(requested_symbols.len());
+
+    if deferred_count > 0 {
+        warn!(
+            target: MARKET_LOG_TARGET,
+            "twelvedata symbol budget applied requested={} budget={} deferred={}",
+            symbols.len(),
+            requested_symbols.len(),
+            deferred_count
+        );
+    }
+
     let url = format!(
         "https://api.twelvedata.com/quote?symbol={}&apikey={}",
-        urlencoding::encode(&symbols.join(",")),
+        urlencoding::encode(&requested_symbols.join(",")),
         urlencoding::encode(&token)
     );
 
@@ -628,7 +507,7 @@ fn fetch_indices_with_twelvedata(
         url,
         "twelvedata",
         "bulk quote",
-        &format!("{} symbols", symbols.len()),
+        &format!("{} symbols", requested_symbols.len()),
     )?;
 
     match parse_twelvedata_bulk_quotes(value) {
@@ -637,12 +516,21 @@ fn fetch_indices_with_twelvedata(
             let rows = definitions
                 .iter()
                 .map(|definition| {
-                    let snapshot = definition
-                        .symbols
-                        .twelvedata
-                        .and_then(|symbol| snapshots.get(&normalize_symbol(symbol)).cloned());
+                    let snapshot = definition.symbols.twelvedata.and_then(|symbol| {
+                        let symbol_key = normalize_symbol(symbol);
 
-                    if snapshot.is_none() {
+                        if !requested_symbol_keys.contains(&symbol_key) {
+                            unavailable_count += 1;
+                            return None;
+                        }
+
+                        snapshots.get(&symbol_key).cloned()
+                    });
+
+                    if definition.symbols.twelvedata.is_some_and(|symbol| {
+                        requested_symbol_keys.contains(&normalize_symbol(symbol))
+                    }) && snapshot.is_none()
+                    {
                         unavailable_count += 1;
                         warn!(
                             target: MARKET_LOG_TARGET,
@@ -658,11 +546,14 @@ fn fetch_indices_with_twelvedata(
             Ok((rows, unavailable_count))
         }
         Err(error) => {
-            warn!(
+            error!(
                 target: MARKET_LOG_TARGET,
-                "twelvedata bulk parse failed; falling back to symbol loop error={error}"
+                "twelvedata bulk parse failed requested={} budget={} error={}",
+                symbols.len(),
+                requested_symbols.len(),
+                error
             );
-            fetch_indices_with_symbol_loop(client, definitions, "twelvedata")
+            Err(error)
         }
     }
 }
@@ -761,36 +652,6 @@ fn index_row_from_snapshot(
     }
 }
 
-fn massive_index_row_from_snapshot(
-    definition: &IndexDefinition,
-    snapshot: &MassiveIndexSnapshot,
-) -> IndexOverviewRow {
-    let session = snapshot.session.as_ref();
-    let change_percent = session.and_then(|session| session.change_percent);
-
-    IndexOverviewRow {
-        id: definition.id.to_string(),
-        symbol: definition.code.to_string(),
-        name: snapshot
-            .name
-            .clone()
-            .unwrap_or_else(|| definition.name.to_string()),
-        region: definition.region.to_string(),
-        currency: Some(definition.currency.to_string()),
-        price: snapshot
-            .value
-            .or_else(|| session.and_then(|session| session.close)),
-        change: session.and_then(|session| session.change),
-        change_percent,
-        open: session.and_then(|session| session.open),
-        high: session.and_then(|session| session.high),
-        low: session.and_then(|session| session.low),
-        previous_close: session.and_then(|session| session.previous_close.or(session.close)),
-        as_of: snapshot.last_updated.map(|timestamp| timestamp.to_string()),
-        technical_rating: technical_rating(change_percent),
-    }
-}
-
 fn technical_rating(change_percent: Option<f64>) -> String {
     match change_percent {
         Some(value) if value >= 2.0 => "Strong buy".to_string(),
@@ -830,60 +691,6 @@ fn fetch_finnhub(
         currency: None,
         as_of: quote.t.map(|timestamp| timestamp.to_string()),
         source_note: "Finnhub quote endpoint".to_string(),
-    })
-}
-
-fn fetch_massive(
-    client: &reqwest::blocking::Client,
-    symbol: &str,
-    asset_class: &str,
-) -> Result<MarketSnapshot, String> {
-    let token = env_key(&["MASSIVE_API_KEY", "POLYGON_API_KEY"])?;
-    let url = format!(
-        "https://api.massive.com/v2/aggs/ticker/{}/prev?adjusted=true&apiKey={}",
-        urlencoding::encode(symbol),
-        urlencoding::encode(&token)
-    );
-
-    let response: MassiveAggResponse =
-        request_json(client, url, "massive", "previous aggregate", symbol)?;
-
-    let result = response
-        .results
-        .and_then(|mut results| results.pop())
-        .ok_or_else(|| {
-            let message = "Massive returned no aggregate data for this symbol".to_string();
-            warn!(
-                target: MARKET_LOG_TARGET,
-                "massive previous aggregate empty symbol={symbol}"
-            );
-            message
-        })?;
-
-    let change = match (result.c, result.o) {
-        (Some(close), Some(open)) => Some(close - open),
-        _ => None,
-    };
-    let change_percent = match (change, result.o) {
-        (Some(change), Some(open)) if open != 0.0 => Some((change / open) * 100.0),
-        _ => None,
-    };
-
-    Ok(MarketSnapshot {
-        provider: "massive".to_string(),
-        symbol: symbol.to_string(),
-        asset_class: asset_class.to_string(),
-        price: result.c,
-        change,
-        change_percent,
-        open: result.o,
-        high: result.h,
-        low: result.l,
-        previous_close: result.o,
-        volume: result.v,
-        currency: None,
-        as_of: result.t.map(|timestamp| timestamp.to_string()),
-        source_note: "Massive previous aggregate endpoint".to_string(),
     })
 }
 

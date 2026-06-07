@@ -64,48 +64,6 @@ pub(crate) struct FinnhubQuote {
     pub(crate) t: Option<i64>,
 }
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct MassiveAggResponse {
-    pub(crate) results: Option<Vec<MassiveAgg>>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct MassiveAgg {
-    pub(crate) c: Option<f64>,
-    pub(crate) h: Option<f64>,
-    pub(crate) l: Option<f64>,
-    pub(crate) o: Option<f64>,
-    pub(crate) v: Option<f64>,
-    pub(crate) t: Option<i64>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct MassiveIndicesSnapshotResponse {
-    pub(crate) results: Option<Vec<MassiveIndexSnapshot>>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct MassiveIndexSnapshot {
-    pub(crate) ticker: Option<String>,
-    pub(crate) name: Option<String>,
-    pub(crate) value: Option<f64>,
-    pub(crate) last_updated: Option<i64>,
-    pub(crate) session: Option<MassiveIndexSession>,
-    pub(crate) error: Option<String>,
-    pub(crate) message: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct MassiveIndexSession {
-    pub(crate) change: Option<f64>,
-    pub(crate) change_percent: Option<f64>,
-    pub(crate) open: Option<f64>,
-    pub(crate) high: Option<f64>,
-    pub(crate) low: Option<f64>,
-    pub(crate) close: Option<f64>,
-    pub(crate) previous_close: Option<f64>,
-}
-
 #[derive(Debug, Deserialize, Clone)]
 pub(crate) struct TwelveQuote {
     pub(crate) symbol: Option<String>,

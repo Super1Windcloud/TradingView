@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core"
 
-export type MarketProvider = "finnhub" | "massive" | "twelvedata"
+export type MarketProvider = "finnhub"
 
 export const indexCategoryIds = [
   "all",
@@ -51,8 +51,6 @@ export interface IndicesOverviewResponse {
 
 export const providerLabels: Record<MarketProvider, string> = {
   finnhub: "Finnhub",
-  massive: "Massive",
-  twelvedata: "Twelve Data",
 }
 
 export const indexCategories: Array<{ id: IndicesCategory; i18nKey: string }> = [
@@ -428,7 +426,7 @@ function buildPreviewIndicesOverview(category: IndicesCategory): IndicesOverview
     .map(({ categories: _categories, ...row }) => row)
 
   return {
-    provider: "twelvedata",
+    provider: "finnhub",
     category,
     updated_at: rows[0]?.as_of ?? null,
     source_note: "Preview data for browser layout verification",

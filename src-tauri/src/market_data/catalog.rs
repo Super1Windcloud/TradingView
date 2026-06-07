@@ -2,8 +2,6 @@ use super::models::IndexCategoryCount;
 
 pub(crate) struct ProviderSymbols {
     pub(crate) finnhub: Option<&'static str>,
-    pub(crate) massive: Option<&'static str>,
-    pub(crate) twelvedata: Option<&'static str>,
 }
 
 pub(crate) struct IndexDefinition {
@@ -40,8 +38,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "us", "americas"],
         symbols: ProviderSymbols {
             finnhub: Some("^GSPC"),
-            massive: Some("I:SPX"),
-            twelvedata: Some("SPX"),
         },
     },
     IndexDefinition {
@@ -53,8 +49,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "us", "americas"],
         symbols: ProviderSymbols {
             finnhub: Some("^IXIC"),
-            massive: Some("I:IXIC"),
-            twelvedata: Some("IXIC"),
         },
     },
     IndexDefinition {
@@ -66,8 +60,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "us", "americas"],
         symbols: ProviderSymbols {
             finnhub: Some("^DJI"),
-            massive: Some("I:DJI"),
-            twelvedata: Some("DJI"),
         },
     },
     IndexDefinition {
@@ -79,8 +71,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "us", "americas"],
         symbols: ProviderSymbols {
             finnhub: Some("^VIX"),
-            massive: Some("I:VIX"),
-            twelvedata: Some("VIX"),
         },
     },
     IndexDefinition {
@@ -92,8 +82,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "americas"],
         symbols: ProviderSymbols {
             finnhub: Some("^GSPTSE"),
-            massive: Some("I:TSX"),
-            twelvedata: Some("TSX"),
         },
     },
     IndexDefinition {
@@ -105,8 +93,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "europe"],
         symbols: ProviderSymbols {
             finnhub: Some("^FTSE"),
-            massive: Some("I:UKX"),
-            twelvedata: Some("UKX"),
         },
     },
     IndexDefinition {
@@ -118,8 +104,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "europe"],
         symbols: ProviderSymbols {
             finnhub: Some("^GDAXI"),
-            massive: Some("I:DAX"),
-            twelvedata: Some("DAX"),
         },
     },
     IndexDefinition {
@@ -131,8 +115,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "europe"],
         symbols: ProviderSymbols {
             finnhub: Some("^FCHI"),
-            massive: Some("I:PX1"),
-            twelvedata: Some("PX1"),
         },
     },
     IndexDefinition {
@@ -144,8 +126,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "europe"],
         symbols: ProviderSymbols {
             finnhub: Some("FTSEMIB.MI"),
-            massive: Some("I:FTMIB"),
-            twelvedata: Some("FTMIB"),
         },
     },
     IndexDefinition {
@@ -157,8 +137,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "asia", "pacific"],
         symbols: ProviderSymbols {
             finnhub: Some("^N225"),
-            massive: Some("I:N225"),
-            twelvedata: Some("N225"),
         },
     },
     IndexDefinition {
@@ -170,8 +148,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "major", "asia"],
         symbols: ProviderSymbols {
             finnhub: Some("^KS11"),
-            massive: Some("I:KOSPI"),
-            twelvedata: Some("KOSPI"),
         },
     },
     IndexDefinition {
@@ -183,8 +159,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "asia"],
         symbols: ProviderSymbols {
             finnhub: Some("^HSI"),
-            massive: Some("I:HSI"),
-            twelvedata: Some("HSI"),
         },
     },
     IndexDefinition {
@@ -196,8 +170,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "pacific"],
         symbols: ProviderSymbols {
             finnhub: Some("^AXJO"),
-            massive: Some("I:XJO"),
-            twelvedata: Some("XJO"),
         },
     },
     IndexDefinition {
@@ -209,8 +181,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "pacific"],
         symbols: ProviderSymbols {
             finnhub: None,
-            massive: Some("I:NZ50"),
-            twelvedata: Some("NZ50"),
         },
     },
     IndexDefinition {
@@ -222,8 +192,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "middle-east"],
         symbols: ProviderSymbols {
             finnhub: None,
-            massive: Some("I:TA35"),
-            twelvedata: Some("TA35"),
         },
     },
     IndexDefinition {
@@ -235,8 +203,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "africa"],
         symbols: ProviderSymbols {
             finnhub: None,
-            massive: Some("I:JALSH"),
-            twelvedata: Some("JALSH"),
         },
     },
     IndexDefinition {
@@ -248,8 +214,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "currency", "americas"],
         symbols: ProviderSymbols {
             finnhub: Some("DX-Y.NYB"),
-            massive: Some("I:DXY"),
-            twelvedata: Some("DXY"),
         },
     },
     IndexDefinition {
@@ -261,8 +225,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLB"),
-            massive: Some("XLB"),
-            twelvedata: Some("XLB"),
         },
     },
     IndexDefinition {
@@ -274,8 +236,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLE"),
-            massive: Some("XLE"),
-            twelvedata: Some("XLE"),
         },
     },
     IndexDefinition {
@@ -287,8 +247,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLF"),
-            massive: Some("XLF"),
-            twelvedata: Some("XLF"),
         },
     },
     IndexDefinition {
@@ -300,8 +258,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLK"),
-            massive: Some("XLK"),
-            twelvedata: Some("XLK"),
         },
     },
     IndexDefinition {
@@ -313,8 +269,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLV"),
-            massive: Some("XLV"),
-            twelvedata: Some("XLV"),
         },
     },
     IndexDefinition {
@@ -326,8 +280,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLI"),
-            massive: Some("XLI"),
-            twelvedata: Some("XLI"),
         },
     },
     IndexDefinition {
@@ -339,8 +291,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLP"),
-            massive: Some("XLP"),
-            twelvedata: Some("XLP"),
         },
     },
     IndexDefinition {
@@ -352,8 +302,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLY"),
-            massive: Some("XLY"),
-            twelvedata: Some("XLY"),
         },
     },
     IndexDefinition {
@@ -365,8 +313,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLU"),
-            massive: Some("XLU"),
-            twelvedata: Some("XLU"),
         },
     },
     IndexDefinition {
@@ -378,8 +324,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLC"),
-            massive: Some("XLC"),
-            twelvedata: Some("XLC"),
         },
     },
     IndexDefinition {
@@ -391,8 +335,6 @@ pub(crate) const INDEX_DEFINITIONS: &[IndexDefinition] = &[
         categories: &["all", "sp-sectors", "us"],
         symbols: ProviderSymbols {
             finnhub: Some("XLRE"),
-            massive: Some("XLRE"),
-            twelvedata: Some("XLRE"),
         },
     },
 ];
@@ -414,14 +356,6 @@ pub(crate) fn category_counts() -> Vec<IndexCategoryCount> {
         .collect()
 }
 
-pub(crate) fn index_symbol_for_provider(
-    definition: &IndexDefinition,
-    provider: &str,
-) -> Option<&'static str> {
-    match provider {
-        "finnhub" => definition.symbols.finnhub,
-        "massive" => definition.symbols.massive,
-        "twelvedata" => definition.symbols.twelvedata,
-        _ => None,
-    }
+pub(crate) fn finnhub_symbol(definition: &IndexDefinition) -> Option<&'static str> {
+    definition.symbols.finnhub
 }
